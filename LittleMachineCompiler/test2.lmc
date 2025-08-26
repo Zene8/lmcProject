@@ -1,0 +1,10 @@
+START INP
+      STA FIRST
+      INP
+      STA SECOND
+      LDA FIRST
+      ADD SECOND
+      OUT
+      HLT
+FIRST DAT 0
+SECOND DAT 0

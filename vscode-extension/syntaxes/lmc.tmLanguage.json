@@ -1,0 +1,53 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "LMC",
+  "patterns": [
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#labels"
+    }
+  ],
+  "repository": {
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.lmc",
+          "match": "\\b(ADD|SUB|STA|LDA|BRA|BRZ|BRP|INP|OUT|HLT|DAT)\\b"
+        }
+      ]
+    },
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.semicolon.lmc",
+          "match": ";.*$"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.lmc",
+          "match": "\\b-?\\d+\\b"
+        }
+      ]
+    },
+    "labels": {
+      "patterns": [
+        {
+          "name": "entity.name.function.lmc",
+          "match": "\\b[A-Z][A-Z0-9]*:"
+        }
+      ]
+    }
+  },
+  "scopeName": "source.lmc"
+}

@@ -1,0 +1,65 @@
+{
+  "name": "lmc-ide-extension",
+  "displayName": "LMC IDE Extension",
+  "description": "VS Code extension for Little Man Computer (LMC) assembly language.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:lmc-ide-extension.runLmcCode"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "lmc-ide-extension.runLmcCode",
+        "title": "Run LMC Code"
+      }
+    ],
+    "languages": [
+      {
+        "id": "lmc",
+        "aliases": [
+          "Little Man Computer",
+          "lmc"
+        ],
+        "extensions": [
+          ".lmc",
+          ".lmc.s"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "lmc",
+        "scopeName": "source.lmc",
+        "path": "./syntaxes/lmc.tmLanguage.json"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0",
+    "@types/mocha": "^10.0.1",
+    "@types/node": "^18.17.0",
+    "@typescript-eslint/eslint-plugin": "^6.4.1",
+    "@typescript-eslint/parser": "^6.4.1",
+    "eslint": "^8.47.0",
+    "typescript": "^5.1.6",
+    "@vscode/test-cli": "^0.0.4",
+    "@vscode/test-electron": "^2.3.4"
+  }
+}

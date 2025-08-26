@@ -1,0 +1,6 @@
+{
+  "comments": {
+    "lineComment": ";"
+  },
+  "wordPattern": "(-?\d+|[A-Za-z][A-Za-z0-9]*)"
+}
