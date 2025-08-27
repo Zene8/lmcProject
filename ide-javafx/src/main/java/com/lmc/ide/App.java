@@ -1,22 +1,22 @@
 package com.lmc.ide;
 
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import org.fxmisc.richtext.CodeArea;
 import org.fxmisc.richtext.LineNumberFactory;
 
@@ -26,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.prefs.Preferences;
@@ -35,71 +36,82 @@ public class App extends Application {
     private CodeArea codeArea;
     private TextArea combinedConsole;
     private TreeView<File> fileExplorer;
-    private Label memoryDisplay;
     private Stage primaryStage;
+    private BorderPane root;
+    private LMCInterpreter interpreter;
+    private LMCParser parser;
+    private LMCIDEFeatures ideFeatures;
+    private LMCParser.AssembledCode currentAssembledCode;
+
     private File currentOpenFile;
     private File currentProjectDirectory;
-    private BorderPane root;
-    private CompletableFuture<Integer> pendingInputRequest;
-    private LMCIDEFeatures ideFeatures;
-    private LMCInterpreter interpreter; // Now a class field
+
+    private Timeline executionTimeline;
+    private Button startButton, stopButton;
+    private ToggleButton speedModeToggle;
+    private Slider speedSlider;
+    private HBox[] memoryCellBoxes = new HBox[100];
+    private Label memoryUsedLabel;
+    private int lastHighlightedLine = -1;
+    private int lastHighlightedMemoryCell = -1;
 
     private boolean autocorrectEnabled = true;
     private boolean autoFormattingEnabled = true;
     private boolean errorHighlightingEnabled = true;
-
-    private Button startButton;
-    private Button stopButton;
+    private CompletableFuture<Integer> pendingInputRequest;
 
     @Override
     public void start(Stage primaryStage) {
         this.primaryStage = primaryStage;
         primaryStage.setTitle("LMC IDE");
         interpreter = new LMCInterpreter();
+        parser = new LMCParser();
 
         Preferences prefs = Preferences.userNodeForPackage(App.class);
         int initialFontSize = prefs.getInt("fontSize", 14);
 
-        // --- UI Components ---
         codeArea = new CodeArea();
         codeArea.setParagraphGraphicFactory(LineNumberFactory.get(codeArea));
         codeArea.getStyleClass().add("code-area");
 
-        memoryDisplay = new Label("Memory Used: 0 / 100");
-        memoryDisplay.getStyleClass().add("label");
+        GridPane memoryVisualizer = createMemoryVisualizer();
+        memoryUsedLabel = new Label("Memory Used: 0 / 100");
 
-        ideFeatures = new LMCIDEFeatures(codeArea, new LMCParser(), memoryDisplay,
+        ideFeatures = new LMCIDEFeatures(codeArea, parser, new Label(),
                 autocorrectEnabled, autoFormattingEnabled, errorHighlightingEnabled);
 
         codeArea.textProperty().addListener((obs, oldText, newText) -> {
             codeArea.setStyleSpans(0, LMCSyntaxHighlighter.computeHighlighting(newText));
+            try {
+                LMCParser.AssembledCode assembled = parser.parse(newText);
+                updateMemoryVisualizer(assembled.memoryMap, -1);
+            } catch (LMCParser.LMCParseException e) {
+                // Ignore parse errors for live preview
+            }
         });
-        codeArea.setStyleSpans(0, LMCSyntaxHighlighter.computeHighlighting(codeArea.getText()));
 
         combinedConsole = new TextArea();
         combinedConsole.setPromptText("LMC Console (Input/Output)");
         combinedConsole.getStyleClass().add("console-area");
-        combinedConsole.setPrefHeight(100);
+        combinedConsole.setPrefHeight(150);
         combinedConsole.setEditable(false);
 
         fileExplorer = new TreeView<>();
         fileExplorer.getStyleClass().add("tree-view");
         fileExplorer.setPrefWidth(200);
-        fileExplorer.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue != null && newValue.getValue().isFile()) {
-                openFile(newValue.getValue());
-            }
+        fileExplorer.getSelectionModel().selectedItemProperty().addListener((obs, ov, nv) -> {
+            if (nv != null && nv.getValue().isFile())
+                openFile(nv.getValue());
         });
 
-        VBox memoryBox = new VBox(5, memoryDisplay);
+        VBox memoryBox = new VBox(10, new Label("Memory Mailboxes"), memoryVisualizer, memoryUsedLabel);
+        memoryBox.setPadding(new Insets(5));
         memoryBox.getStyleClass().add("memory-box");
-        memoryBox.setPrefWidth(250);
+        memoryBox.setPrefWidth(500);
 
-        // --- Layout ---
         root = new BorderPane();
         root.setStyle("-fx-font-size: " + initialFontSize + "px;");
 
-        // --- Toolbar with Start/Stop Buttons ---
         MenuBar menuBar = createMenuBar(prefs, initialFontSize);
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -111,24 +123,30 @@ public class App extends Application {
         stopButton.setOnAction(e -> stopLMC());
         stopButton.setDisable(true);
 
-        ToolBar toolBar = new ToolBar(menuBar, spacer, startButton, stopButton);
+        speedModeToggle = new ToggleButton("Fast Mode");
+        speedSlider = new Slider(50, 2000, 500);
+        speedSlider.setPrefWidth(150);
+        speedSlider.setBlockIncrement(50);
+        speedSlider.setDisable(true);
+        speedModeToggle.setOnAction(e -> {
+            speedSlider.setDisable(!speedModeToggle.isSelected());
+            speedModeToggle.setText(speedModeToggle.isSelected() ? "Slow Mode" : "Fast Mode");
+        });
+
+        ToolBar toolBar = new ToolBar(menuBar, spacer, speedModeToggle, speedSlider, startButton, stopButton);
         root.setTop(toolBar);
 
-        // --- Center Content ---
-        SplitPane horizontalMainSplitPane = new SplitPane();
-        horizontalMainSplitPane.getItems().addAll(fileExplorer, codeArea);
+        SplitPane horizontalMainSplitPane = new SplitPane(fileExplorer, codeArea);
         horizontalMainSplitPane.setDividerPositions(0.2);
 
-        SplitPane verticalMainSplitPane = new SplitPane();
+        SplitPane verticalMainSplitPane = new SplitPane(horizontalMainSplitPane, combinedConsole);
         verticalMainSplitPane.setOrientation(Orientation.VERTICAL);
-        verticalMainSplitPane.getItems().addAll(horizontalMainSplitPane, combinedConsole);
-        verticalMainSplitPane.setDividerPositions(0.75);
+        verticalMainSplitPane.setDividerPositions(0.8);
 
         root.setCenter(verticalMainSplitPane);
         root.setRight(memoryBox);
 
-        // --- Scene and Stage ---
-        Scene scene = new Scene(root, 1200, 800);
+        Scene scene = new Scene(root, 1400, 900);
         scene.getStylesheets().add(getClass().getResource("/vscode-style.css").toExternalForm());
         scene.getStylesheets().add(getClass().getResource("/lmc-syntax.css").toExternalForm());
         primaryStage.setScene(scene);
@@ -142,7 +160,6 @@ public class App extends Application {
     private MenuBar createMenuBar(Preferences prefs, int initialFontSize) {
         MenuBar menuBar = new MenuBar();
 
-        // File Menu
         Menu fileMenu = new Menu("File");
         MenuItem openProjectItem = new MenuItem("Open Project...");
         openProjectItem.setOnAction(e -> openProject());
@@ -159,7 +176,6 @@ public class App extends Application {
         fileMenu.getItems().addAll(openProjectItem, newFileItem, newFolderItem, new SeparatorMenuItem(), saveItem,
                 saveAsItem, new SeparatorMenuItem(), exitItem);
 
-        // Edit Menu
         Menu editMenu = new Menu("Edit");
         MenuItem undoItem = new MenuItem("Undo");
         undoItem.setOnAction(e -> codeArea.undo());
@@ -176,9 +192,9 @@ public class App extends Application {
         editMenu.getItems().addAll(undoItem, redoItem, new SeparatorMenuItem(), cutItem, copyItem, pasteItem,
                 new SeparatorMenuItem(), formatCodeItem);
 
-        // Features Menu
         Menu featuresMenu = new Menu("Features");
         Label autocorrectCheck = new Label("✓");
+        autocorrectCheck.getStyleClass().add("menu-check-mark");
         autocorrectCheck.setMinWidth(20);
         MenuItem autocorrectToggle = new MenuItem("Autocorrect");
         autocorrectToggle.setGraphic(autocorrectEnabled ? autocorrectCheck : null);
@@ -189,6 +205,7 @@ public class App extends Application {
         });
 
         Label autoFormatCheck = new Label("✓");
+        autoFormatCheck.getStyleClass().add("menu-check-mark");
         autoFormatCheck.setMinWidth(20);
         MenuItem autoFormattingToggle = new MenuItem("Auto-formatting");
         autoFormattingToggle.setGraphic(autoFormattingEnabled ? autoFormatCheck : null);
@@ -199,6 +216,7 @@ public class App extends Application {
         });
 
         Label errorHighlightCheck = new Label("✓");
+        errorHighlightCheck.getStyleClass().add("menu-check-mark");
         errorHighlightCheck.setMinWidth(20);
         MenuItem errorHighlightingToggle = new MenuItem("Error Highlighting");
         errorHighlightingToggle.setGraphic(errorHighlightingEnabled ? errorHighlightCheck : null);
@@ -209,7 +227,6 @@ public class App extends Application {
         });
         featuresMenu.getItems().addAll(autocorrectToggle, autoFormattingToggle, errorHighlightingToggle);
 
-        // View Menu
         Menu viewMenu = new Menu("View");
         MenuItem lightModeItem = new MenuItem("Light Mode");
         lightModeItem.setOnAction(e -> applyTheme("light-mode"));
@@ -246,21 +263,26 @@ public class App extends Application {
     }
 
     private void stopLMC() {
-        if (interpreter != null) {
+        if (executionTimeline != null)
+            executionTimeline.stop();
+        if (interpreter != null)
             interpreter.stop();
-        }
         stopButton.setDisable(true);
         startButton.setDisable(false);
+        speedModeToggle.setDisable(false);
+        highlightCurrentInstruction(-1);
+        updateMemoryVisualizer(interpreter.getMemory(), -1);
     }
 
     private void runLMC() {
         startButton.setDisable(true);
         stopButton.setDisable(false);
+        speedModeToggle.setDisable(true);
         combinedConsole.clear();
         combinedConsole.setEditable(false);
+        highlightCurrentInstruction(-1);
 
         String lmcCode = codeArea.getText();
-
         if (autocorrectEnabled) {
             String correctedCode = ideFeatures.autocorrectCode(lmcCode);
             if (!lmcCode.equals(correctedCode)) {
@@ -269,9 +291,152 @@ public class App extends Application {
             }
         }
 
-        final String finalLmcCode = lmcCode;
+        try {
+            currentAssembledCode = parser.parse(lmcCode);
+            interpreter.load(currentAssembledCode, createInputProvider());
+            updateMemoryVisualizer(interpreter.getMemory(), -1);
+        } catch (LMCParser.LMCParseException e) {
+            finishExecution(LMCInterpreter.ExecutionState.ERROR, e.getMessage());
+            return;
+        }
 
-        InputProvider inputProvider = () -> {
+        if (speedModeToggle.isSelected()) { // SLOW MODE
+            executionTimeline = new Timeline();
+            executionTimeline.setCycleCount(Timeline.INDEFINITE);
+            KeyFrame keyFrame = new KeyFrame(Duration.millis(speedSlider.getValue()), e -> executeStep());
+            executionTimeline.getKeyFrames().add(keyFrame);
+
+            speedSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+                if (executionTimeline.getStatus() == Timeline.Status.RUNNING) {
+                    executionTimeline.setRate(speedSlider.getMin() / newVal.doubleValue());
+                }
+            });
+            executionTimeline.setRate(speedSlider.getMin() / speedSlider.getValue());
+
+            interpreter.start();
+            executionTimeline.play();
+        } else { // FAST MODE
+            CompletableFuture.runAsync(() -> {
+                interpreter.start();
+                LMCInterpreter.ExecutionState state;
+                do {
+                    state = interpreter.step();
+                } while (state == LMCInterpreter.ExecutionState.RUNNING);
+
+                // FIX: Create a final variable to capture the state for the inner lambda
+                final LMCInterpreter.ExecutionState finalState = state;
+                Platform.runLater(() -> finishExecution(finalState, interpreter.getErrorMessage()));
+            });
+        }
+    }
+
+    private void executeStep() {
+        LMCInterpreter.ExecutionState state = interpreter.step();
+        if (state != LMCInterpreter.ExecutionState.RUNNING) {
+            finishExecution(state, interpreter.getErrorMessage());
+        } else {
+            int pc = interpreter.getProgramCounter();
+            updateMemoryVisualizer(interpreter.getMemory(), interpreter.getLastAccessedAddress());
+            highlightCurrentInstruction(pc);
+        }
+    }
+
+    private void finishExecution(LMCInterpreter.ExecutionState finalState, String message) {
+        if (executionTimeline != null)
+            executionTimeline.stop();
+        stopButton.setDisable(true);
+        startButton.setDisable(false);
+        speedModeToggle.setDisable(false);
+
+        updateMemoryVisualizer(interpreter.getMemory(), -1);
+        highlightCurrentInstruction(-1);
+
+        switch (finalState) {
+            case HALTED:
+                combinedConsole.appendText("\n--- Program Halted ---\n" + interpreter.getOutput());
+                break;
+            case STOPPED:
+                combinedConsole.appendText("\n--- Program Stopped by User ---");
+                break;
+            case ERROR:
+                combinedConsole.appendText("\n--- Runtime Error ---\n" + message);
+                break;
+            case AWAITING_INPUT:
+                // This state is handled by the input provider, no action needed here
+                break;
+        }
+    }
+
+    private void highlightCurrentInstruction(int pc) {
+        Platform.runLater(() -> {
+            if (lastHighlightedLine != -1) {
+                codeArea.setParagraphStyle(lastHighlightedLine, Collections.emptyList());
+            }
+            if (currentAssembledCode != null && currentAssembledCode.addressToLineMap.containsKey(pc)) {
+                int line = currentAssembledCode.addressToLineMap.get(pc);
+                if (line < codeArea.getParagraphs().size()) {
+                    codeArea.setParagraphStyle(line, Collections.singleton("current-line"));
+                    lastHighlightedLine = line;
+                }
+            } else {
+                lastHighlightedLine = -1;
+            }
+        });
+    }
+
+    private GridPane createMemoryVisualizer() {
+        GridPane grid = new GridPane();
+        grid.getStyleClass().add("memory-grid");
+        for (int i = 0; i < 100; i++) {
+            HBox cellBox = new HBox();
+            cellBox.getStyleClass().add("memory-cell");
+            for (int j = 0; j < 3; j++) {
+                Label digit = new Label("0");
+                digit.getStyleClass().add("memory-digit");
+                cellBox.getChildren().add(digit);
+            }
+            memoryCellBoxes[i] = cellBox;
+            grid.add(cellBox, i % 10, i / 10);
+        }
+        return grid;
+    }
+
+    private void updateMemoryVisualizer(int[] memory, int highlightedAddress) {
+        Platform.runLater(() -> {
+            if (lastHighlightedMemoryCell != -1) {
+                memoryCellBoxes[lastHighlightedMemoryCell].getStyleClass().remove("memory-cell-highlight");
+            }
+            int memoryUsed = 0;
+            for (int i = 0; i < 100; i++) {
+                if (memory[i] != 0)
+                    memoryUsed++;
+                String formatted = String.format("%03d", memory[i]);
+                ((Label) memoryCellBoxes[i].getChildren().get(0)).setText(String.valueOf(formatted.charAt(0)));
+                ((Label) memoryCellBoxes[i].getChildren().get(1)).setText(String.valueOf(formatted.charAt(1)));
+                ((Label) memoryCellBoxes[i].getChildren().get(2)).setText(String.valueOf(formatted.charAt(2)));
+            }
+            memoryUsedLabel.setText("Memory Used: " + memoryUsed + " / 100");
+            if (highlightedAddress != -1) {
+                memoryCellBoxes[highlightedAddress].getStyleClass().add("memory-cell-highlight");
+                lastHighlightedMemoryCell = highlightedAddress;
+            } else {
+                lastHighlightedMemoryCell = -1;
+            }
+        });
+    }
+
+    private void updateMemoryVisualizer(Map<Integer, Integer> memoryMap, int highlightedAddress) {
+        int[] memArray = new int[100];
+        for (Map.Entry<Integer, Integer> entry : memoryMap.entrySet()) {
+            if (entry.getKey() >= 0 && entry.getKey() < 100) {
+                memArray[entry.getKey()] = entry.getValue();
+            }
+        }
+        updateMemoryVisualizer(memArray, highlightedAddress);
+    }
+
+    private InputProvider createInputProvider() {
+        return () -> {
             CompletableFuture<Integer> future = new CompletableFuture<>();
             Platform.runLater(() -> {
                 combinedConsole.appendText("\nEnter input: ");
@@ -281,48 +446,19 @@ public class App extends Application {
             });
             return future;
         };
-
-        CompletableFuture.supplyAsync(() -> {
-            try {
-                return interpreter.run(finalLmcCode, inputProvider);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }).whenComplete((output, ex) -> {
-            Platform.runLater(() -> {
-                combinedConsole.setEditable(false);
-                if (ex == null) {
-                    combinedConsole.appendText("\nLMC Program Output:\n" + output);
-                } else {
-                    Throwable cause = ex.getCause();
-                    if (cause instanceof LMCParser.LMCParseException) {
-                        LMCParser.LMCParseException parseEx = (LMCParser.LMCParseException) cause;
-                        combinedConsole.appendText("\nLMC Parse Error:\n" + parseEx.getMessage() + "\n");
-                    } else if (cause instanceof LMCInterpreter.LMCRuntimeException) {
-                        combinedConsole.appendText("\nLMC Runtime Error:\n" + cause.getMessage() + "\n");
-                    } else {
-                        combinedConsole.appendText("\nAn unexpected error occurred:\n"
-                                + (cause != null ? cause.getMessage() : ex.getMessage()) + "\n");
-                    }
-                }
-                startButton.setDisable(false);
-                stopButton.setDisable(true);
-            });
-        });
     }
-
-    // ... (All other helper methods: openProject, saveFile, applyTheme, etc. remain
-    // the same)
 
     private void openProject() {
         DirectoryChooser directoryChooser = new DirectoryChooser();
         directoryChooser.setTitle("Open LMC Project");
-        File selectedDirectory = directoryChooser.showDialog(primaryStage);
-
-        if (selectedDirectory != null) {
-            currentProjectDirectory = selectedDirectory;
+        File initialDir = (currentProjectDirectory != null) ? currentProjectDirectory
+                : new File(System.getProperty("user.home"));
+        directoryChooser.setInitialDirectory(initialDir);
+        File dir = directoryChooser.showDialog(primaryStage);
+        if (dir != null) {
+            currentProjectDirectory = dir;
             refreshFileExplorer();
-            primaryStage.setTitle("LMC IDE - " + selectedDirectory.getName());
+            primaryStage.setTitle("LMC IDE - " + dir.getName());
         }
     }
 
@@ -363,11 +499,7 @@ public class App extends Application {
             String content = Files.readString(file.toPath());
             codeArea.replaceText(content);
             currentOpenFile = file;
-            if (currentProjectDirectory != null) {
-                primaryStage.setTitle("LMC IDE - " + currentProjectDirectory.getName() + " - " + file.getName());
-            } else {
-                primaryStage.setTitle("LMC IDE - " + file.getName());
-            }
+            updateTitle();
         } catch (IOException e) {
             showAlert("Error", "Could not read file: " + e.getMessage());
         }
@@ -376,7 +508,20 @@ public class App extends Application {
     private void newFile() {
         codeArea.clear();
         currentOpenFile = null;
-        primaryStage.setTitle("LMC IDE - New File");
+        updateTitle();
+    }
+
+    private void updateTitle() {
+        String title = "LMC IDE";
+        if (currentProjectDirectory != null) {
+            title += " - " + currentProjectDirectory.getName();
+        }
+        if (currentOpenFile != null) {
+            title += " - " + currentOpenFile.getName();
+        } else if (currentProjectDirectory == null) {
+            title += " - New File";
+        }
+        primaryStage.setTitle(title);
     }
 
     private void newFolder() {
@@ -438,6 +583,7 @@ public class App extends Application {
                 Files.writeString(file.toPath(), codeArea.getText(), StandardOpenOption.CREATE,
                         StandardOpenOption.TRUNCATE_EXISTING);
                 currentOpenFile = file;
+                updateTitle();
                 showAlert("Success", "File saved successfully!");
                 if (currentProjectDirectory != null && file.getParentFile().equals(currentProjectDirectory)) {
                     refreshFileExplorer();
@@ -465,7 +611,6 @@ public class App extends Application {
                 new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN),
                 this::newFolder);
         scene.getAccelerators().put(new KeyCodeCombination(KeyCode.O, KeyCombination.CONTROL_DOWN), this::openProject);
-        // Note: Ctrl+R hotkey for run is removed as we now have a dedicated button
     }
 
     private void applyTheme(String theme) {

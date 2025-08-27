@@ -32,7 +32,6 @@ public class LMCIDEFeatures {
     private double lastMouseX;
     private double lastMouseY;
 
-    // NEW: For autocomplete
     private final ContextMenu suggestionsPopup = new ContextMenu();
 
     private static final List<String> LMC_INSTRUCTIONS = Arrays.asList(
@@ -47,7 +46,7 @@ public class LMCIDEFeatures {
         this.autoFormattingEnabled = autoFormattingEnabled;
         this.errorHighlightingEnabled = errorHighlightingEnabled;
 
-        setupAutocomplete(); // NEW
+        setupAutocomplete();
         setupErrorHighlighting();
         setupMemoryUsageTracking();
         setupInstructionTooltips();
@@ -55,7 +54,6 @@ public class LMCIDEFeatures {
         setupPasteFormatting();
     }
 
-    // NEW: Autocomplete/Intellisense feature
     private void setupAutocomplete() {
         codeArea.textProperty().addListener((obs, oldText, newText) -> {
             String currentWord = getCurrentWord();
@@ -83,10 +81,8 @@ public class LMCIDEFeatures {
             }
         });
 
-        // Handle Enter key to accept suggestion
         codeArea.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
             if (suggestionsPopup.isShowing() && e.getCode() == KeyCode.ENTER) {
-                // Find the selected/first item and fire its action
                 if (!suggestionsPopup.getItems().isEmpty()) {
                     suggestionsPopup.getItems().get(0).fire();
                     e.consume();
@@ -116,8 +112,6 @@ public class LMCIDEFeatures {
         suggestionsPopup.hide();
     }
 
-    // ... (rest of the file is the same as before)
-
     private void setupErrorHighlighting() {
         codeArea.textProperty().addListener((obs, oldText, newText) -> {
             if (!errorHighlightingEnabled) {
@@ -141,7 +135,9 @@ public class LMCIDEFeatures {
     private void setupMemoryUsageTracking() {
         codeArea.textProperty().addListener((obs, oldText, newText) -> {
             try {
-                Map<Integer, Integer> memory = lmcParser.parse(newText);
+                // FIX: Handle the AssembledCode object returned by the parser
+                LMCParser.AssembledCode assembledCode = lmcParser.parse(newText);
+                Map<Integer, Integer> memory = assembledCode.memoryMap;
                 int used = memory.size();
                 Platform.runLater(() -> memoryUsageLabel.setText("Memory Used: " + used + " / 100"));
             } catch (LMCParser.LMCParseException e) {
@@ -212,12 +208,10 @@ public class LMCIDEFeatures {
         int start = pos;
         int end = pos;
 
-        // Move start backwards to the beginning of the word
         while (start > 0 && Character.isLetterOrDigit(text.charAt(start - 1))) {
             start--;
         }
 
-        // Move end forwards to the end of the word
         while (end < text.length() && Character.isLetterOrDigit(text.charAt(end))) {
             end++;
         }
@@ -307,12 +301,10 @@ public class LMCIDEFeatures {
             String[] parts = line.trim().split("\\s+");
             if (parts.length > 0 && !parts[0].isEmpty()) {
                 int instructionIndex = 0;
-                // If the first part is a label, the instruction is the second part
                 if (parts.length > 1 && parts[0].endsWith(":")) {
                     instructionIndex = 1;
                 }
 
-                // Ensure the index is valid before accessing
                 if (instructionIndex < parts.length) {
                     String originalInstruction = parts[instructionIndex];
                     String correctedInstruction = autocorrectInstruction(originalInstruction);

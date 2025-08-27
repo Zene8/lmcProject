@@ -1,138 +1,143 @@
 package com.lmc.ide;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class LMCInterpreter {
 
+    public enum ExecutionState {
+        RUNNING, HALTED, STOPPED, AWAITING_INPUT, ERROR
+    }
+
     private static final int MEMORY_SIZE = 100;
-    private static final int ACC_MIN = -999;
-    private static final int ACC_MAX = 999;
-
-    private int[] memory;
-    private int programCounter;
-    private int accumulator;
+    private int[] memory = new int[MEMORY_SIZE];
+    private int programCounter = 0;
+    private int accumulator = 0;
+    private int lastAccessedAddress = -1;
     private InputProvider inputProvider;
-    private StringBuilder outputBuffer;
-    private final AtomicBoolean running = new AtomicBoolean(false); // FIX: For stopping execution
+    private StringBuilder outputBuffer = new StringBuilder();
+    private final AtomicBoolean running = new AtomicBoolean(false);
+    private String errorMessage = null;
 
-    public LMCInterpreter() {
-        memory = new int[MEMORY_SIZE];
-        outputBuffer = new StringBuilder();
+    public void load(LMCParser.AssembledCode assembledCode, InputProvider provider) {
+        this.inputProvider = provider;
+        this.outputBuffer.setLength(0);
+        this.errorMessage = null;
+        this.programCounter = 0;
+        this.accumulator = 0;
+        this.lastAccessedAddress = -1;
+        Arrays.fill(memory, 0);
+
+        for (Map.Entry<Integer, Integer> entry : assembledCode.memoryMap.entrySet()) {
+            if (entry.getKey() >= 0 && entry.getKey() < MEMORY_SIZE) {
+                memory[entry.getKey()] = entry.getValue();
+            }
+        }
+    }
+
+    public void start() {
+        this.running.set(true);
     }
 
     public void stop() {
-        running.set(false);
+        this.running.set(false);
     }
 
-    public String run(String lmcCode, InputProvider inputProvider)
-            throws LMCParser.LMCParseException, LMCRuntimeException {
-        this.inputProvider = inputProvider;
-        this.outputBuffer.setLength(0);
-        this.running.set(true); // Start execution
-
-        LMCParser parser = new LMCParser();
-        Map<Integer, Integer> assembledMemory = parser.parse(lmcCode);
-
-        // Initialize memory
-        for (int i = 0; i < MEMORY_SIZE; i++) {
-            memory[i] = 0;
-        }
-        for (Map.Entry<Integer, Integer> entry : assembledMemory.entrySet()) {
-            int address = entry.getKey();
-            if (address < 0 || address >= MEMORY_SIZE) {
-                throw new LMCRuntimeException("Memory address out of bounds: " + address);
-            }
-            memory[address] = entry.getValue();
+    public ExecutionState step() {
+        if (!running.get())
+            return ExecutionState.STOPPED;
+        if (programCounter < 0 || programCounter >= MEMORY_SIZE) {
+            errorMessage = "Program counter out of bounds: " + programCounter;
+            return ExecutionState.ERROR;
         }
 
-        programCounter = 0;
-        accumulator = 0;
+        lastAccessedAddress = -1; // Reset before execution
+        int instruction = memory[programCounter];
+        int opcode = instruction / 100;
+        int operand = instruction % 100;
+        int nextPC = programCounter + 1;
 
-        // FIX: Loop now checks the 'running' flag instead of a cycle count
-        while (programCounter < MEMORY_SIZE && running.get()) {
-            int instruction = safeRead(programCounter);
-            int opcode = instruction / 100;
-            int operand = instruction % 100;
-
-            programCounter++; // Pre-increment PC
-
+        try {
             switch (opcode) {
-                case 1: // ADD
-                    accumulator += safeRead(operand);
+                case 1:
+                    accumulator += read(operand);
                     break;
-                case 2: // SUB
-                    accumulator -= safeRead(operand);
+                case 2:
+                    accumulator -= read(operand);
                     break;
-                case 3: // STA
-                    safeWrite(operand, accumulator);
+                case 3:
+                    write(operand, accumulator);
                     break;
-                case 5: // LDA
-                    accumulator = safeRead(operand);
+                case 5:
+                    accumulator = read(operand);
                     break;
-                case 6: // BRA
-                    programCounter = operand;
+                case 6:
+                    nextPC = operand;
                     break;
-                case 7: // BRZ
+                case 7:
                     if (accumulator == 0)
-                        programCounter = operand;
+                        nextPC = operand;
                     break;
-                case 8: // BRP
+                case 8:
                     if (accumulator >= 0)
-                        programCounter = operand;
+                        nextPC = operand;
                     break;
-                case 9: // INP / OUT
-                    switch (operand) {
-                        case 1: // INP
-                            if (!running.get())
-                                return "Execution stopped by user.";
-                            accumulator = inputProvider.requestInput().join();
-                            break;
-                        case 2: // OUT
-                            outputBuffer.append(accumulator).append("\n");
-                            break;
-                        default:
-                            throw new LMCRuntimeException("Unknown I/O instruction: 9" + operand);
+                case 9:
+                    if (operand == 1) { // INP
+                        accumulator = inputProvider.requestInput().join();
+                    } else if (operand == 2) { // OUT
+                        outputBuffer.append(accumulator).append("\n");
                     }
                     break;
-                case 0: // HLT or DAT
-                    if (instruction == 0) {
-                        running.set(false);
-                        return outputBuffer.toString().trim(); // Halt
-                    } else {
-                        throw new LMCRuntimeException("Attempted to execute data as instruction at address "
-                                + (programCounter - 1) + ": " + instruction);
-                    }
+                case 0:
+                    if (instruction == 0)
+                        return ExecutionState.HALTED;
+                    throw new RuntimeException("Attempted to execute data as instruction");
                 default:
-                    throw new LMCRuntimeException("Unknown instruction at address "
-                            + (programCounter - 1) + ": " + instruction);
+                    throw new RuntimeException("Unknown instruction opcode: " + opcode);
             }
-            accumulator = Math.max(ACC_MIN, Math.min(ACC_MAX, accumulator));
+        } catch (Exception e) {
+            errorMessage = e.getMessage();
+            return ExecutionState.ERROR;
         }
 
-        if (!running.get()) {
-            return outputBuffer.append("\nExecution stopped by user.").toString().trim();
-        }
-        throw new LMCRuntimeException("Program exceeded memory bounds or did not halt.");
+        programCounter = nextPC;
+        return ExecutionState.RUNNING;
     }
 
-    private int safeRead(int address) throws LMCRuntimeException {
-        if (address < 0 || address >= MEMORY_SIZE) {
-            throw new LMCRuntimeException("Invalid memory read at address: " + address);
-        }
+    private int read(int address) {
+        if (address < 0 || address >= MEMORY_SIZE)
+            throw new RuntimeException("Memory address out of bounds: " + address);
+        lastAccessedAddress = address;
         return memory[address];
     }
 
-    private void safeWrite(int address, int value) throws LMCRuntimeException {
-        if (address < 0 || address >= MEMORY_SIZE) {
-            throw new LMCRuntimeException("Invalid memory write at address: " + address);
-        }
+    private void write(int address, int value) {
+        if (address < 0 || address >= MEMORY_SIZE)
+            throw new RuntimeException("Memory address out of bounds: " + address);
+        lastAccessedAddress = address;
         memory[address] = value;
     }
 
-    public static class LMCRuntimeException extends Exception {
-        public LMCRuntimeException(String message) {
-            super(message);
-        }
+    // Getters for UI updates
+    public int getProgramCounter() {
+        return programCounter;
+    }
+
+    public int getLastAccessedAddress() {
+        return lastAccessedAddress;
+    }
+
+    public int[] getMemory() {
+        return memory;
+    }
+
+    public String getOutput() {
+        return outputBuffer.toString();
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
     }
 }

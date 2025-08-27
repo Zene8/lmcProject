@@ -6,6 +6,17 @@ import java.util.regex.Pattern;
 
 public class LMCParser {
 
+    // Inner class to hold the result of parsing
+    public static class AssembledCode {
+        public final Map<Integer, Integer> memoryMap;
+        public final Map<Integer, Integer> addressToLineMap;
+
+        AssembledCode(Map<Integer, Integer> memoryMap, Map<Integer, Integer> addressToLineMap) {
+            this.memoryMap = Collections.unmodifiableMap(memoryMap);
+            this.addressToLineMap = Collections.unmodifiableMap(addressToLineMap);
+        }
+    }
+
     private static final int INP = 901;
     private static final int OUT = 902;
     private static final int ADD = 100;
@@ -27,15 +38,16 @@ public class LMCParser {
                     "\\s*(?://.*)?$",
             Pattern.CASE_INSENSITIVE);
 
-    public Map<Integer, Integer> parse(String code) throws LMCParseException {
+    public AssembledCode parse(String code) throws LMCParseException {
         Map<String, Integer> symbolTable = new HashMap<>();
         List<String[]> parsedLines = new ArrayList<>();
-        Map<Integer, Integer> memory = new HashMap<>();
+        Map<Integer, Integer> memoryMap = new HashMap<>();
+        Map<Integer, Integer> addressToLineMap = new HashMap<>();
 
         int currentAddress = 0;
         String[] lines = code.split("\\r?\\n");
 
-        // Pass 1: Build symbol table
+        // Pass 1: Build symbol table and address-to-line map
         for (int i = 0; i < lines.length; i++) {
             String line = lines[i].trim();
             if (line.isEmpty() || line.matches("^\\s*(//|#).*")) {
@@ -46,6 +58,8 @@ public class LMCParser {
             if (!matcher.matches()) {
                 throw new LMCParseException("Syntax error: Invalid line format.", i + 1);
             }
+
+            addressToLineMap.put(currentAddress, i);
 
             String label = matcher.group(1);
             String instruction = matcher.group(2);
@@ -69,18 +83,13 @@ public class LMCParser {
             String[] parts = parsedLines.get(i);
             String instruction = parts[0];
             String operand = parts[1];
-
-            int opcode;
             int operandValue = 0;
 
             if ("DAT".equalsIgnoreCase(instruction)) {
-                if (operand == null || operand.isEmpty()) {
-                    operandValue = 0;
-                } else {
+                if (operand != null && !operand.isEmpty()) {
                     try {
                         operandValue = Integer.parseInt(operand);
                     } catch (NumberFormatException e) {
-                        // ENHANCEMENT: Allow DAT to be initialized with a label's address
                         String upperOperand = operand.toUpperCase();
                         if (symbolTable.containsKey(upperOperand)) {
                             operandValue = symbolTable.get(upperOperand);
@@ -89,10 +98,9 @@ public class LMCParser {
                         }
                     }
                 }
-                memory.put(currentAddress, operandValue);
+                memoryMap.put(currentAddress, operandValue);
             } else {
-                opcode = getOpcode(instruction, i + 1);
-
+                int opcode = getOpcode(instruction, i + 1);
                 if (INSTRUCTIONS_WITH_OPERAND.contains(instruction)) {
                     if (operand == null || operand.isEmpty()) {
                         throw new LMCParseException("Missing operand for instruction: " + instruction, i + 1);
@@ -107,17 +115,17 @@ public class LMCParser {
                             throw new LMCParseException("Unknown label or invalid operand: " + operand, i + 1);
                         }
                     }
-                    memory.put(currentAddress, opcode + operandValue);
+                    memoryMap.put(currentAddress, opcode + operandValue);
                 } else {
                     if (operand != null && !operand.isEmpty()) {
                         throw new LMCParseException("Instruction " + instruction + " does not take an operand.", i + 1);
                     }
-                    memory.put(currentAddress, opcode);
+                    memoryMap.put(currentAddress, opcode);
                 }
             }
             currentAddress++;
         }
-        return memory;
+        return new AssembledCode(memoryMap, addressToLineMap);
     }
 
     private int getOpcode(String instruction, int line) throws LMCParseException {

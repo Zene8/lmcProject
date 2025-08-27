@@ -181,8 +181,43 @@
     /* Increased padding */
 }
 
-/* <-- FIX: Added the missing closing brace here. */
+.menu-check-mark {
+    -fx-text-fill: #4CAF50;
+    /* A bright, visible green for checkmarks */
+}
 
+.memory-grid {
+    -fx-padding: 5;
+    -fx-hgap: 2;
+    -fx-vgap: 2;
+}
+
+.memory-cell {
+    -fx-spacing: 10;
+    /* Space between digit boxes */
+    -fx-alignment: center;
+}
+
+.memory-digit {
+    -fx-font-family: "Consolas", "Monaco", monospace;
+    -fx-background-color: #3c3c3c;
+    -fx-text-fill: #d4d4d4;
+    -fx-alignment: center;
+    -fx-min-width: 15;
+    /* Narrower for single digits */
+    -fx-min-height: 25;
+    -fx-background-radius: 2;
+}
+
+.light-mode .memory-digit {
+    -fx-background-color: #e0e0e0;
+    -fx-text-fill: #333333;
+}
+
+.memory-cell-highlight .memory-digit {
+    -fx-background-color: var(--accent-color);
+    -fx-text-fill: white;
+}
 .high-contrast .error-line {
     -fx-background-color: red;
 }
