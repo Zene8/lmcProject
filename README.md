@@ -27,7 +27,7 @@ This project aims to create a comprehensive development environment for the Litt
 Ensure you have the following installed:
 - `gcc` (for the C compiler)
 - `make` (for building the C compiler)
-- Java Development Kit (JDK) 11 or higher (for JavaFX IDE)
+- Java Development Kit (JDK) 17 or higher (for JavaFX IDE)
 - Apache Maven (for JavaFX IDE)
 - Node.js and npm (for VS Code Extension)
 - Visual Studio Code (for VS Code Extension development)
@@ -70,6 +70,7 @@ To run the JavaFX IDE directly from Maven:
 ```bash
 mvn javafx:run
 ```
+Note: Running the JavaFX IDE requires a graphical display environment. If you encounter an "Unable to open DISPLAY" error, you are likely in a headless environment. The application cannot be run directly in such environments.
 
 ### VS Code Extension
 **Location:** `vscode-extension/`
@@ -145,6 +146,7 @@ The JavaFX IDE currently does not have automated unit or integration tests. Veri
     ```bash
     mvn javafx:run
     ```
+    Note: Running the JavaFX IDE requires a graphical display environment. If you encounter an "Unable to open DISPLAY" error, you are likely in a headless environment. The application cannot be run directly in such environments.
     This will start the JavaFX application.
 4.  **Perform manual testing:**
     Once the IDE window appears, thoroughly interact with all its functionalities. This includes:

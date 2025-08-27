@@ -40,6 +40,8 @@ The compiler will be written in C and will translate Little Machine Code into a 
 3.  **Semantic Analysis:** Check the parse tree for semantic errors (e.g., undefined labels).
 4.  **Code Generation:** Generate the target assembly code from the parse tree.
 
+For detailed setup and testing instructions, please refer to the main project README.md.
+
 ## 3. Simple IDE
 
 A simple, terminal-based IDE will be created with the following features:
