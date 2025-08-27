@@ -50,7 +50,7 @@ public class App extends Application {
     private Button startButton, stopButton;
     private ToggleButton speedModeToggle;
     private Slider speedSlider;
-    private HBox[] memoryCellBoxes = new HBox[100];
+    private Label[] memoryCellBoxes = new Label[100];
     private Label memoryUsedLabel;
     private int lastHighlightedLine = -1;
     private int lastHighlightedMemoryCell = -1;
@@ -332,6 +332,13 @@ public class App extends Application {
 
     private void executeStep() {
         LMCInterpreter.ExecutionState state = interpreter.step();
+        if (state == LMCInterpreter.ExecutionState.AWAITING_INPUT) {
+            if (executionTimeline != null) {
+                executionTimeline.pause();
+            }
+            return; // Wait for input
+        }
+
         if (state != LMCInterpreter.ExecutionState.RUNNING) {
             finishExecution(state, interpreter.getErrorMessage());
         } else {
@@ -388,15 +395,10 @@ public class App extends Application {
         GridPane grid = new GridPane();
         grid.getStyleClass().add("memory-grid");
         for (int i = 0; i < 100; i++) {
-            HBox cellBox = new HBox();
-            cellBox.getStyleClass().add("memory-cell");
-            for (int j = 0; j < 3; j++) {
-                Label digit = new Label("0");
-                digit.getStyleClass().add("memory-digit");
-                cellBox.getChildren().add(digit);
-            }
-            memoryCellBoxes[i] = cellBox;
-            grid.add(cellBox, i % 10, i / 10);
+            Label cellLabel = new Label("000");
+            cellLabel.getStyleClass().add("memory-cell");
+            memoryCellBoxes[i] = cellLabel;
+            grid.add(cellLabel, i % 10, i / 10);
         }
         return grid;
     }
@@ -411,9 +413,7 @@ public class App extends Application {
                 if (memory[i] != 0)
                     memoryUsed++;
                 String formatted = String.format("%03d", memory[i]);
-                ((Label) memoryCellBoxes[i].getChildren().get(0)).setText(String.valueOf(formatted.charAt(0)));
-                ((Label) memoryCellBoxes[i].getChildren().get(1)).setText(String.valueOf(formatted.charAt(1)));
-                ((Label) memoryCellBoxes[i].getChildren().get(2)).setText(String.valueOf(formatted.charAt(2)));
+                memoryCellBoxes[i].setText(formatted);
             }
             memoryUsedLabel.setText("Memory Used: " + memoryUsed + " / 100");
             if (highlightedAddress != -1) {
@@ -647,6 +647,12 @@ public class App extends Application {
                         pendingInputRequest.complete(input);
                         pendingInputRequest = null;
                         combinedConsole.setEditable(false);
+
+                        // If slow mode was waiting for input, resume it
+                        if (executionTimeline != null && executionTimeline.getStatus() == Timeline.Status.PAUSED) {
+                            executeStep(); // Process the input
+                            executionTimeline.play(); // Continue the timeline
+                        }
                     }
                 } catch (NumberFormatException e) {
                     Platform.runLater(() -> {

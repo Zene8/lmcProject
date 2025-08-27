@@ -9,6 +9,7 @@ export class LMCInterpreter {
     private inputQueue: number[];
     private outputChannel: vscode.OutputChannel;
     private isHalted: boolean;
+    private panel: vscode.WebviewPanel | undefined;
 
     // LMC instruction opcodes (simplified for interpreter)
     private static readonly OPCODE_MAP: Map<string, number> = new Map([
@@ -36,6 +37,21 @@ export class LMCInterpreter {
         this.isHalted = false;
 
         this.parseLabelsAndData();
+    }
+
+    public setWebViewPanel(panel: vscode.WebviewPanel) {
+        this.panel = panel;
+    }
+
+    private updateWebView() {
+        if (this.panel) {
+            this.panel.webview.postMessage({
+                command: 'update',
+                memory: this.getMemory(),
+                pc: this.getProgramCounter(),
+                acc: this.getAccumulator(),
+            });
+        }
     }
 
     private parseLabelsAndData() {
@@ -101,6 +117,17 @@ export class LMCInterpreter {
     public async run(): Promise<void> {
         while (this.programCounter < this.programLines.length && !this.isHalted) {
             await this.step();
+        }
+    }
+
+    public async runSlow(delay: number): Promise<void> {
+        if (this.isHalted) return;
+
+        await this.step();
+        this.updateWebView();
+
+        if (!this.isHalted) {
+            setTimeout(() => this.runSlow(delay), delay);
         }
     }
 
@@ -216,6 +243,7 @@ export class LMCInterpreter {
         }
 
         this.programCounter++;
+        this.updateWebView();
     }
 
     public getHalted(): boolean {
@@ -237,3 +265,4 @@ export class LMCInterpreter {
     public getLabels(): Map<string, number> {
         return new Map(this.labels); // Return a copy
     }
+}

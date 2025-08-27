@@ -82,7 +82,7 @@ public class LMCIDEFeatures {
         });
 
         codeArea.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
-            if (suggestionsPopup.isShowing() && e.getCode() == KeyCode.ENTER) {
+            if (suggestionsPopup.isShowing() && e.getCode() == KeyCode.TAB) {
                 if (!suggestionsPopup.getItems().isEmpty()) {
                     suggestionsPopup.getItems().get(0).fire();
                     e.consume();

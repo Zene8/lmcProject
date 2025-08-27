@@ -19,6 +19,7 @@ public class LMCInterpreter {
     private StringBuilder outputBuffer = new StringBuilder();
     private final AtomicBoolean running = new AtomicBoolean(false);
     private String errorMessage = null;
+    private Integer inputValue = null;
 
     public void load(LMCParser.AssembledCode assembledCode, InputProvider provider) {
         this.inputProvider = provider;
@@ -27,6 +28,7 @@ public class LMCInterpreter {
         this.programCounter = 0;
         this.accumulator = 0;
         this.lastAccessedAddress = -1;
+        this.inputValue = null;
         Arrays.fill(memory, 0);
 
         for (Map.Entry<Integer, Integer> entry : assembledCode.memoryMap.entrySet()) {
@@ -42,6 +44,10 @@ public class LMCInterpreter {
 
     public void stop() {
         this.running.set(false);
+    }
+
+    public void setInputValue(int value) {
+        this.inputValue = value;
     }
 
     public ExecutionState step() {
@@ -85,7 +91,14 @@ public class LMCInterpreter {
                     break;
                 case 9:
                     if (operand == 1) { // INP
-                        accumulator = inputProvider.requestInput().join();
+                        if (inputValue != null) {
+                            accumulator = inputValue;
+                            inputValue = null; // Consume input
+                        } else {
+                            // No input available, request it and wait
+                            inputProvider.requestInput().thenAccept(this::setInputValue);
+                            return ExecutionState.AWAITING_INPUT;
+                        }
                     } else if (operand == 2) { // OUT
                         outputBuffer.append(accumulator).append("\n");
                     }

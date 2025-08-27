@@ -119,6 +119,56 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(runDisposable);
 
+  let slowRunDisposable = vscode.commands.registerCommand('lmc-ide-extension.runLmcCodeSlow', async () => {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      vscode.window.showInformationMessage('No active text editor found.');
+      return;
+    }
+
+    const document = editor.document;
+    if (document.languageId !== 'lmc') {
+      vscode.window.showInformationMessage('Active file is not an LMC file.');
+      return;
+    }
+
+    const diagnostics = checkLmcSyntax(document);
+    if (diagnostics.length > 0) {
+        vscode.window.showErrorMessage('Cannot run LMC code due to syntax errors. Please fix them first.');
+        lmcDiagnostics.set(document.uri, diagnostics); // Ensure diagnostics are shown
+        return;
+    }
+
+    const lmcCode = document.getText();
+    const outputChannel = vscode.window.createOutputChannel('LMC Output');
+    outputChannel.show();
+    outputChannel.appendLine('Running LMC Code in Slow Mode...');
+
+    const panel = vscode.window.createWebviewPanel(
+        'lmcMemoryView',
+        'LMC Memory',
+        vscode.ViewColumn.Two,
+        {
+            enableScripts: true
+        }
+    );
+
+    const interpreter = new LMCInterpreter(lmcCode, outputChannel);
+    interpreter.setWebViewPanel(panel);
+
+    panel.webview.html = getWebviewContent();
+
+    await interpreter.runSlow(500);
+
+    if (interpreter.getHalted()) {
+        outputChannel.appendLine('Program execution finished.');
+    } else {
+        outputChannel.appendLine('Program execution completed without HLT instruction.');
+    }
+  });
+
+  context.subscriptions.push(slowRunDisposable);
+
   // Register CompletionItemProvider for LMC keywords and labels
   const provider = vscode.languages.registerCompletionItemProvider('lmc', {
     provideCompletionItems(document: vscode.TextDocument, position: vscode.Position) {
@@ -134,7 +184,42 @@ export function activate(context: vscode.ExtensionContext) {
       // Add LMC keywords
       LMC_KEYWORDS.forEach(keyword => {
         const item = new vscode.CompletionItem(keyword, vscode.CompletionItemKind.Keyword);
-        item.insertText = keyword; // Ensure the full keyword is inserted
+        item.insertText = new vscode.SnippetString(`${keyword} $0`);
+        switch (keyword) {
+            case "ADD":
+                item.documentation = "Adds the value from a memory address to the accumulator.";
+                break;
+            case "SUB":
+                item.documentation = "Subtracts the value from a memory address from the accumulator.";
+                break;
+            case "STA":
+                item.documentation = "Stores the value from the accumulator to a memory address.";
+                break;
+            case "LDA":
+                item.documentation = "Loads the value from a memory address into the accumulator.";
+                break;
+            case "BRA":
+                item.documentation = "Branches to a memory address unconditionally.";
+                break;
+            case "BRZ":
+                item.documentation = "Branches to a memory address if the accumulator is zero.";
+                break;
+            case "BRP":
+                item.documentation = "Branches to a memory address if the accumulator is positive or zero.";
+                break;
+            case "INP":
+                item.documentation = "Takes user input and stores it in the accumulator.";
+                break;
+            case "OUT":
+                item.documentation = "Outputs the value from the accumulator.";
+                break;
+            case "HLT":
+                item.documentation = "Halts the program.";
+                break;
+            case "DAT":
+                item.documentation = "Reserves a memory location and initializes it with a value.";
+                break;
+        }
         completions.push(item);
       });
 
@@ -160,6 +245,75 @@ export function activate(context: vscode.ExtensionContext) {
       }
     })
   );
+}
+
+function getWebviewContent() {
+    return `<!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>LMC Memory</title>
+        <style>
+            body {
+                font-family: sans-serif;
+            }
+            .container {
+                display: grid;
+                grid-template-columns: repeat(10, 1fr);
+                gap: 5px;
+            }
+            .memory-box {
+                border: 1px solid #ccc;
+                padding: 10px;
+                text-align: center;
+            }
+            .info {
+                margin-top: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>LMC Memory</h1>
+        <div class="container" id="memory-grid"></div>
+        <div class="info">
+            <h2>Accumulator: <span id="accumulator">0</span></h2>
+            <h2>Program Counter: <span id="program-counter">0</span></h2>
+        </div>
+
+        <script>
+            const vscode = acquireVsCodeApi();
+            const memoryGrid = document.getElementById('memory-grid');
+            const accumulator = document.getElementById('accumulator');
+            const programCounter = document.getElementById('program-counter');
+
+            window.addEventListener('message', event => {
+                const message = event.data;
+                switch (message.command) {
+                    case 'update':
+                        updateMemory(message.memory);
+                        updateInfo(message.acc, message.pc);
+                        break;
+                }
+            });
+
+            function updateMemory(memory) {
+                memoryGrid.innerHTML = '';
+                for (let i = 0; i < 100; i++) {
+                    const box = document.createElement('div');
+                    box.className = 'memory-box';
+                    box.textContent = String(memory[i] || 0).padStart(3, '0');
+                    memoryGrid.appendChild(box);
+                }
+            }
+
+            function updateInfo(acc, pc) {
+                accumulator.textContent = acc;
+                programCounter.textContent = pc;
+            }
+        </script>
+    </body>
+    </html>`;
 }
 
 export function deactivate() {

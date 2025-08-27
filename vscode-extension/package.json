@@ -19,6 +19,10 @@
       {
         "command": "lmc-ide-extension.runLmcCode",
         "title": "Run LMC Code"
+      },
+      {
+        "command": "lmc-ide-extension.runLmcCodeSlow",
+        "title": "Run LMC Code (Slow)"
       }
     ],
     "languages": [
