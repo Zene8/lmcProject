@@ -1,0 +1,37 @@
+        INP     // 901 - Input a value
+        STA     NUM1    // 3xx - Store value at address NUM1
+
+        LDA     NUM1    // 5xx - Load value from address NUM1
+        OUT     // 902 - Output the value
+
+        INP     // Get another number for arithmetic
+        STA     NUM2
+
+        LDA     NUM1
+        ADD     NUM2    // 1xx - Add NUM2 to accumulator
+        OUT     // Output sum
+
+        LDA     NUM1
+        SUB     NUM2    // 2xx - Subtract NUM2 from accumulator
+        OUT     // Output difference
+
+        LDA     ZERO    // Load 0
+        BRZ     ZERO_BRANCH // 7xx - Branch if accumulator is zero
+        OUT     // This should not be executed
+
+ZERO_BRANCH
+        LDA     ONE     // Load 1
+        BRP     POSITIVE_BRANCH // 8xx - Branch if accumulator is positive
+        OUT     // This should not be executed
+
+POSITIVE_BRANCH
+        BRA     END_PROGRAM // 6xx - Unconditional jump
+
+        // Data declarations
+NUM1    DAT     0
+NUM2    DAT     0
+ONE     DAT     1
+ZERO    DAT     0
+
+END_PROGRAM
+        HLT     // 000 - Halt program execution

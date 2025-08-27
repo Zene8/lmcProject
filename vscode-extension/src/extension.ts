@@ -1,12 +1,34 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { exec } from 'child_process';
+// import { exec } from 'child_process'; // No longer needed
 import { checkLmcSyntax } from './lmcSyntaxChecker'; // Import the syntax checker
+import { LMCInterpreter } from './lmcInterpreter'; // Import the LMC Interpreter
 
 const LMC_KEYWORDS = [
     "ADD", "SUB", "STA", "LDA", "BRA", "BRZ", "BRP", "INP", "OUT", "HLT", "DAT"
 ];
+
+function parseLabels(document: vscode.TextDocument): Map<string, number> {
+    const labels = new Map<string, number>();
+    for (let i = 0; i < document.lineCount; i++) {
+        const line = document.lineAt(i).text.trim();
+        if (line.length === 0 || line.startsWith('//')) {
+            continue;
+        }
+
+        const parts = line.split(/\s+/);
+        if (parts.length === 0) {
+            continue;
+        }
+
+        // A label is a word at the beginning of the line that is not an instruction
+        if (!LMC_KEYWORDS.includes(parts[0].toUpperCase())) {
+            labels.set(parts[0], i); // Store label and its line number
+        }
+    }
+    return labels;
+}
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "lmc-ide-extension" is now active!');
@@ -35,7 +57,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 
   // Register "Run LMC Code" command
-  let runDisposable = vscode.commands.registerCommand('lmc-ide-extension.runLmcCode', () => {
+  let runDisposable = vscode.commands.registerCommand('lmc-ide-extension.runLmcCode', async () => { // Added 'async'
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
       vscode.window.showInformationMessage('No active text editor found.');
@@ -58,54 +80,24 @@ export function activate(context: vscode.ExtensionContext) {
 
 
     const lmcCode = document.getText();
-    const outputChannel = vscode.window.createOutputChannel('LMC Compiler Output');
+    const outputChannel = vscode.window.createOutputChannel('LMC Output'); // Changed name
     outputChannel.show();
     outputChannel.appendLine('Running LMC Code...');
 
-    // Create a temporary file for the LMC code
-    const tempDir = path.join(context.extensionPath, 'temp');
-    if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir);
+    // Use the LMCInterpreter
+    const interpreter = new LMCInterpreter(lmcCode, outputChannel);
+    await interpreter.run(); // Await the interpreter to finish
+
+    if (interpreter.getHalted()) {
+        outputChannel.appendLine('Program execution finished.');
+    } else {
+        outputChannel.appendLine('Program execution completed without HLT instruction.');
     }
-    const tempFilePath = path.join(tempDir, `input_${Date.now()}.lmc`);
-
-    fs.writeFile(tempFilePath, lmcCode, (err) => {
-      if (err) {
-        outputChannel.appendLine(`Error creating temporary file: ${err.message}`);
-        vscode.window.showErrorMessage(`Error creating temporary file: ${err.message}`);
-        return;
-      }
-
-      // Assuming the compiler executable is in the root of the LMC project
-      // This path needs to be adjusted based on where the compiler actually resides
-      // For now, let's assume it's in a 'compiler' directory relative to the extension root
-      const compilerPath = path.join(context.extensionPath, '..', '..', 'LittleMachineCompiler', 'compiler'); // Adjust this path as needed
-
-      exec(`${compilerPath} ${tempFilePath}`, (error, stdout, stderr) => {
-        if (error) {
-          outputChannel.appendLine(`Compiler Error: ${error.message}`);
-          vscode.window.showErrorMessage(`LMC Compiler Error: ${error.message}`);
-        }
-        if (stdout) {
-          outputChannel.appendLine('Compiler Output:\n' + stdout);
-        }
-        if (stderr) {
-          outputChannel.appendLine('Compiler Stderr:\n' + stderr);
-        }
-
-        // Clean up temporary file
-        fs.unlink(tempFilePath, (unlinkErr) => {
-          if (unlinkErr) {
-            console.error(`Error deleting temporary file: ${unlinkErr.message}`);
-          }
-        });
-      });
-    });
   });
 
   context.subscriptions.push(runDisposable);
 
-  // Register CompletionItemProvider for LMC keywords
+  // Register CompletionItemProvider for LMC keywords and labels
   const provider = vscode.languages.registerCompletionItemProvider('lmc', {
     provideCompletionItems(document: vscode.TextDocument, position: vscode.Position) {
       const linePrefix = document.lineAt(position).text.substr(0, position.character);
@@ -115,10 +107,21 @@ export function activate(context: vscode.ExtensionContext) {
         return undefined; // No word to complete
       }
 
-      const completions = LMC_KEYWORDS.map(keyword => {
+      const completions: vscode.CompletionItem[] = [];
+
+      // Add LMC keywords
+      LMC_KEYWORDS.forEach(keyword => {
         const item = new vscode.CompletionItem(keyword, vscode.CompletionItemKind.Keyword);
         item.insertText = keyword; // Ensure the full keyword is inserted
-        return item;
+        completions.push(item);
+      });
+
+      // Add labels from the document
+      const labels = parseLabels(document);
+      labels.forEach((lineNumber, labelName) => {
+        const item = new vscode.CompletionItem(labelName, vscode.CompletionItemKind.Reference);
+        item.insertText = labelName;
+        completions.push(item);
       });
 
       return completions;

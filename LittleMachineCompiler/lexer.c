@@ -81,6 +81,16 @@ Token *scan_tokens(const char *src) {
                 line++;
                 source++;
                 break;
+            case '/': // Handle comments
+                if (*(source + 1) == '/') {
+                    while (*source != '\n' && *source != '\0') {
+                        source++;
+                    }
+                } else {
+                    // Handle other characters starting with / if any
+                    source++;
+                }
+                break;
             default:
                 if (is_digit(*source)) {
                     number();
@@ -88,7 +98,7 @@ Token *scan_tokens(const char *src) {
                     identifier();
                 }
                 else {
-                    // Handle other characters
+                    // Unrecognized character, skip for now
                     source++;
                 }
                 break;

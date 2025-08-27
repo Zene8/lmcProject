@@ -93,37 +93,100 @@ npm run watch
 
 ## 3. Testing
 
+This section outlines how to verify the functionality of each component of the Little Machine Compiler project.
+
 ### Little Machine Compiler (C)
 **Location:** `LittleMachineCompiler/`
 
-The compiler does not have automated tests configured with a test runner. You can manually test it by compiling `.lmc` files and verifying the generated assembly (`.s`) files.
+The C compiler currently relies on manual verification due to the absence of an automated test runner. You can test its functionality by compiling `.lmc` source files and then examining the generated `.s` assembly files.
 
-Example:
-```bash
-cd LittleMachineCompiler/
-./compiler test.lmc output.s
-```
-Then, inspect `output.s` to ensure correctness. You can also try to assemble and run the generated `.s` files using an assembler (e.g., `nasm`) and linker (e.g., `ld`) if you have them set up for your system.
+**Steps to Test:**
+
+1.  **Navigate to the compiler directory:**
+    ```bash
+    cd LittleMachineCompiler/
+    ```
+2.  **Build the compiler executable:**
+    If you haven't already, compile the source code using `make`:
+    ```bash
+    make
+    ```
+    This command will create an executable named `compiler` in the current directory.
+3.  **Compile an LMC source file:**
+    Use the compiled `compiler` executable to translate an `.lmc` file into an `.s` assembly file. For example, to compile `test_all_instructions.lmc` (a comprehensive test file included in the project):
+    ```bash
+    ./compiler test_all_instructions.lmc test_all_instructions.s
+    ```
+    You can replace `test_all_instructions.lmc` with any other `.lmc` file you wish to test, and `test_all_instructions.s` with your desired output filename.
+4.  **Inspect the generated assembly:**
+    Open the generated `.s` file (e.g., `test_all_instructions.s`) in a text editor. Carefully review its content to ensure that the assembly instructions correctly correspond to the original LMC code. This manual inspection is crucial for verifying the compiler's translation accuracy.
+    
+    *Optional:* For more advanced verification, if you have an assembler (e.g., `nasm`) and linker (e.g., `ld`) set up for your system, you can attempt to assemble and run the generated `.s` files to confirm their execution behavior.
 
 ### JavaFX IDE
 **Location:** `ide-javafx/`
 
-The JavaFX IDE does not have automated unit or integration tests configured. Manual testing involves running the application (`mvn javafx:run`) and interacting with its features (code editing, syntax checking, running LMC code, debugging).
+The JavaFX IDE currently does not have automated unit or integration tests. Verification involves running the application and manually interacting with its various features to ensure they function as expected.
+
+**Steps to Test:**
+
+1.  **Navigate to the IDE directory:**
+    ```bash
+    cd ide-javafx/
+    ```
+2.  **Build the JavaFX application:**
+    Use Maven to clean any previous builds and install the application dependencies:
+    ```bash
+    mvn clean install
+    ```
+    This command will compile the JavaFX application and package it, typically into a JAR file within the `target/` directory.
+3.  **Run the JavaFX IDE:**
+    Launch the IDE directly using Maven:
+    ```bash
+    mvn javafx:run
+    ```
+    This will start the JavaFX application.
+4.  **Perform manual testing:**
+    Once the IDE window appears, thoroughly interact with all its functionalities. This includes:
+    *   **Code Editing:** Type and edit LMC code in the editor. Verify syntax highlighting, basic text manipulation, and responsiveness.
+    *   **Syntax Checking:** Observe if the IDE provides real-time feedback on syntax errors or warnings as you type.
+    *   **Running LMC Code:** If the IDE has a feature to execute LMC code, run some sample programs and verify their output.
+    *   **Debugging Features:** If debugging capabilities are implemented, test setting breakpoints, stepping through code, and inspecting variable values.
+    *   **File Operations:** Test opening, saving, and creating new LMC files.
 
 ### VS Code Extension
 **Location:** `vscode-extension/`
 
-To run the extension tests:
-```bash
-cd vscode-extension/
-npm test
-```
-This will launch a special VS Code instance to run the tests defined in your `src/test/` directory (if any).
+The VS Code extension can be verified through both automated tests (if implemented) and manual debugging within a special VS Code instance.
 
-To debug the extension:
-1. Open the `vscode-extension/` folder in VS Code.
-2. Press `F5` to launch a new VS Code window with your extension loaded.
-3. In the new window, open an `.lmc` file and test your extension's features. You can set breakpoints in your extension's TypeScript code in the original VS Code window.
+**Steps to Test:**
+
+1.  **Navigate to the extension directory:**
+    ```bash
+    cd vscode-extension/
+    ```
+2.  **Install Node.js dependencies:**
+    Ensure all required packages are installed:
+    ```bash
+    npm install
+    ```
+3.  **Run automated tests (if available):**
+    If the extension includes automated tests (typically located in `src/test/`), you can run them using:
+    ```bash
+    npm test
+    ```
+    This command will launch a dedicated VS Code instance to execute the defined tests and report their results.
+4.  **Manually test and debug the extension:**
+    This is the primary method for interactive testing and development:
+    *   **Open the extension project in VS Code:** In your main VS Code window, open the `/home/astra/projects/lmcProject/vscode-extension/` folder.
+    *   **Launch a debug session:** Press `F5`. This action will compile the extension (if necessary) and open a new, separate VS Code window (often called the "Extension Development Host"). This new window has your extension loaded and active.
+    *   **Test extension features:** In the "Extension Development Host" window, open an `.lmc` file (you can create a new one or open an existing one from the `LittleMachineCompiler/` directory). Interact with your extension's features, such as:
+        *   **Syntax Highlighting:** Verify that LMC keywords, instructions, and data are correctly colored.
+        *   **Autocompletion/IntelliSense:** Check if the extension provides relevant suggestions as you type.
+        *   **Diagnostics/Linting:** Confirm that syntax errors or semantic issues in your LMC code are highlighted.
+        *   **Hover Information:** If implemented, check if hovering over LMC elements provides useful information.
+        *   **Commands:** Test any custom commands the extension registers (e.g., via the Command Palette `Ctrl+Shift+P`).
+    *   **Set breakpoints (for debugging):** In your *original* VS Code window (where you opened the `vscode-extension/` project), you can set breakpoints in your TypeScript source files (`.ts` files in the `src/` directory). When you perform an action in the "Extension Development Host" window that triggers the code at a breakpoint, execution will pause in your original window, allowing you to inspect variables and step through your code.
 
 ## 4. Deployment
 

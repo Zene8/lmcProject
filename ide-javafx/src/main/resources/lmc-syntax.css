@@ -1,0 +1,42 @@
+.lmc-instruction {
+    -fx-fill: #800000; /* Dark Red */
+    -fx-font-weight: bold;
+}
+
+.lmc-label {
+    -fx-fill: #000080; /* Dark Blue */
+}
+
+.lmc-number {
+    -fx-fill: #008000; /* Dark Green */
+}
+
+.lmc-comment {
+    -fx-fill: #808080; /* Gray */
+}
+
+.current-line {
+    -fx-background-color: #ffff0040; /* Light yellow with some transparency */
+}
+
+/* Theme styles */
+.light-theme {
+    -fx-base: #f4f4f4;
+    -fx-background: #ffffff;
+    -fx-text-fill: #000000;
+}
+
+.dark-theme {
+    -fx-base: #333333;
+    -fx-background: #222222;
+    -fx-text-fill: #ffffff;
+}
+
+/* Specific overrides for CodeArea in dark theme */
+.dark-theme .code-area .text {
+    -fx-fill: #ffffff;
+}
+.dark-theme .code-area .linenumbers {
+    -fx-background-color: #444444;
+    -fx-text-fill: #aaaaaa;
+}
