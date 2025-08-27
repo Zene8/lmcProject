@@ -1,10 +1,10 @@
 CC = gcc
 CFLAGS = -Wall -g
 
-all: compiler
+all: compiler.exe
 
-compiler: compiler.o lexer.o parser.o codegen.o
-	$(CC) $(CFLAGS) -o compiler compiler.o lexer.o parser.o codegen.o
+compiler.exe: compiler.o lexer.o parser.o codegen.o
+	$(CC) $(CFLAGS) -o compiler.exe compiler.o lexer.o parser.o codegen.o
 
 compiler.o: compiler.c
 	$(CC) $(CFLAGS) -c compiler.c
@@ -19,4 +19,4 @@ codegen.o: codegen.c codegen.h
 	$(CC) $(CFLAGS) -c codegen.c
 
 clean:
-	rm -f *.o compiler
+	del *.o compiler.exe

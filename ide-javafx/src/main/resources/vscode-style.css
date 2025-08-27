@@ -1,0 +1,203 @@
+/* ─────────────────────────────────────────────
+   Global Font & Accent Settings
+─────────────────────────────────────────────── */
+.root {
+    -fx-font-family: "Segoe UI", sans-serif;
+    -fx-font-size: var(--base-font-size, 14px);
+    --accent-color: #007acc;
+    /* Default accent */
+}
+
+/* ─────────────────────────────────────────────
+   Syntax Highlighting
+─────────────────────────────────────────────── */
+.keyword {
+    -fx-fill: #800000;
+    -fx-font-weight: bold;
+}
+
+.label {
+    -fx-fill: #000080;
+}
+
+.number {
+    -fx-fill: #008000;
+}
+
+.comment {
+    -fx-fill: #808080;
+    -fx-font-style: italic;
+}
+
+.operand {
+    -fx-fill: #0000FF;
+}
+
+.error-line {
+    -fx-background-color: rgba(255, 0, 0, 0.2);
+}
+
+.suggestion {
+    -fx-underline: true;
+    -fx-fill: orange;
+}
+
+.current-line {
+    -fx-background-color: #ffff0040;
+}
+
+/* ─────────────────────────────────────────────
+   Theme: Dark Mode
+─────────────────────────────────────────────── */
+.dark-mode {
+    -fx-background-color: #1e1e1e;
+    --text-color: #d4d4d4;
+    --background-color: #1e1e1e;
+    --sidebar-color: #252526;
+    --console-color: #252526;
+    --navbar-color: #333333;
+    --selection-color: #007acc;
+    --border-color: #3c3c3c;
+}
+
+.dark-mode .code-area {
+    -fx-background-color: var(--background-color);
+    -fx-fill: var(--text-color);
+    -fx-font-family: "Consolas", "Monaco", "Courier New", monospace;
+    -fx-font-size: var(--base-font-size);
+}
+
+.dark-mode .console-area {
+    -fx-background-color: var(--console-color);
+    -fx-text-fill: var(--text-color);
+    -fx-font-size: var(--base-font-size);
+}
+
+.dark-mode .menu-bar,
+.dark-mode .context-menu {
+    -fx-background-color: var(--navbar-color);
+}
+
+.dark-mode .menu-item {
+    -fx-text-fill: var(--text-color);
+    -fx-background-color: var(--navbar-color);
+}
+
+.dark-mode .menu-item:focused {
+    -fx-background-color: var(--accent-color);
+}
+
+.dark-mode .button {
+    -fx-background-color: var(--accent-color);
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 5px 10px;
+}
+
+.dark-mode .button:hover {
+    -fx-background-color: derive(var(--accent-color), -20%);
+}
+
+/* ─────────────────────────────────────────────
+   Theme: Light Mode
+─────────────────────────────────────────────── */
+.light-mode {
+    -fx-background-color: #ffffff;
+    --text-color: #333333;
+    --background-color: #ffffff;
+    --sidebar-color: #f3f3f3;
+    --console-color: #f3f3f3;
+    --navbar-color: #e0e0e0;
+    --selection-color: #add6ff;
+    --border-color: #cccccc;
+}
+
+.light-mode .code-area {
+    -fx-background-color: var(--background-color);
+    -fx-fill: var(--text-color);
+    -fx-font-family: "Consolas", "Monaco", "Courier New", monospace;
+    -fx-font-size: var(--base-font-size);
+}
+
+.light-mode .console-area {
+    -fx-background-color: var(--console-color);
+    -fx-text-fill: var(--text-color);
+    -fx-font-size: var(--base-font-size);
+}
+
+.light-mode .menu-bar,
+.light-mode .context-menu {
+    -fx-background-color: var(--navbar-color);
+}
+
+.light-mode .menu-item {
+    -fx-text-fill: var(--text-color);
+    -fx-background-color: var(--navbar-color);
+}
+
+.light-mode .menu-item:focused {
+    -fx-background-color: var(--accent-color);
+}
+
+.light-mode .button {
+    -fx-background-color: var(--accent-color);
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 5px 10px;
+}
+
+.light-mode .button:hover {
+    -fx-background-color: derive(var(--accent-color), -20%);
+}
+
+/* ─────────────────────────────────────────────
+   Accessibility: High Contrast Mode
+─────────────────────────────────────────────── */
+.high-contrast {
+    -fx-background-color: black;
+    --text-color: yellow;
+    --accent-color: cyan;
+}
+
+.high-contrast .code-area {
+    -fx-background-color: black;
+    -fx-fill: yellow;
+    -fx-font-weight: bold;
+    -fx-font-size: var(--base-font-size);
+}
+
+.high-contrast .button {
+    -fx-background-color: cyan;
+    -fx-text-fill: black;
+    -fx-font-weight: bold;
+    -fx-padding: 8px 12px;
+    /* Increased padding */
+}
+
+.high-contrast .menu-item {
+    -fx-text-fill: yellow;
+    -fx-background-color: black;
+    -fx-padding: 5px 10px;
+    /* Increased padding */
+}
+
+/* <-- FIX: Added the missing closing brace here. */
+
+.high-contrast .error-line {
+    -fx-background-color: red;
+}
+
+/* ─────────────────────────────────────────────
+   Shared Component Styling
+─────────────────────────────────────────────── */
+.split-pane-divider {
+    -fx-background-color: var(--border-color);
+}
+
+.code-area .selection {
+    -fx-background-color: var(--selection-color);
+}
+
+.code-area .caret {
+    -fx-stroke: var(--text-color);
+}

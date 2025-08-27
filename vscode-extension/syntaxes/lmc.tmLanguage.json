@@ -29,9 +29,13 @@
         {
           "name": "comment.line.semicolon.lmc",
           "match": ";.*$"
+        },
+        {
+          "name": "comment.line.double-slash.lmc",
+          "match": "//.*$"
         }
       ]
-    },
+    },,
     "numbers": {
       "patterns": [
         {

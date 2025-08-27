@@ -1,42 +1,98 @@
-.lmc-instruction {
-    -fx-fill: #800000; /* Dark Red */
+/* ─────────────────────────────────────────────
+   Syntax Highlighting Styles
+─────────────────────────────────────────────── */
+
+.keyword {
+    -fx-fill: #800000;
+    /* Dark Red */
     -fx-font-weight: bold;
 }
 
-.lmc-label {
-    -fx-fill: #000080; /* Dark Blue */
+.label {
+    -fx-fill: #000080;
+    /* Dark Blue */
 }
 
-.lmc-number {
-    -fx-fill: #008000; /* Dark Green */
+.number {
+    -fx-fill: #008000;
+    /* Dark Green */
 }
 
-.lmc-comment {
-    -fx-fill: #808080; /* Gray */
+.comment {
+    -fx-fill: #808080;
+    /* Gray */
+    -fx-font-style: italic;
 }
 
+.operand {
+    -fx-fill: #0000FF;
+    /* Blue */
+}
+
+/* ─────────────────────────────────────────────
+   Error & Suggestion Feedback
+─────────────────────────────────────────────── */
+
+.error-line {
+    -fx-background-color: rgba(255, 0, 0, 0.2);
+    /* Light red background */
+}
+
+.suggestion {
+    -fx-underline: true;
+    -fx-fill: orange;
+}
+
+/* Highlight current line (optional) */
 .current-line {
-    -fx-background-color: #ffff0040; /* Light yellow with some transparency */
+    -fx-background-color: #ffff0040;
+    /* Light yellow with transparency */
 }
 
-/* Theme styles */
-.light-theme {
-    -fx-base: #f4f4f4;
-    -fx-background: #ffffff;
+/* ─────────────────────────────────────────────
+   Theme Base Styles
+─────────────────────────────────────────────── */
+
+.root.light-theme {
+    -fx-background-color: #ffffff;
     -fx-text-fill: #000000;
 }
 
-.dark-theme {
-    -fx-base: #333333;
-    -fx-background: #222222;
+.root.dark-theme {
+    -fx-background-color: #222222;
     -fx-text-fill: #ffffff;
 }
 
-/* Specific overrides for CodeArea in dark theme */
-.dark-theme .code-area .text {
-    -fx-fill: #ffffff;
+/* ─────────────────────────────────────────────
+   CodeArea Specific Styling
+─────────────────────────────────────────────── */
+
+.code-area {
+    -fx-font-family: "Consolas", "Courier New", monospace;
+    -fx-font-size: 14px;
 }
+
+/* Selection and caret */
+.code-area .selection {
+    -fx-background-color: #cce5ff;
+}
+
+.code-area .caret {
+    -fx-stroke: black;
+}
+
+/* Line numbers */
+.light-theme .code-area .linenumbers {
+    -fx-background-color: #e0e0e0;
+    -fx-text-fill: #555555;
+}
+
 .dark-theme .code-area .linenumbers {
     -fx-background-color: #444444;
     -fx-text-fill: #aaaaaa;
+}
+
+/* Text fill override for dark theme */
+.dark-theme .code-area .text {
+    -fx-fill: #ffffff;
 }

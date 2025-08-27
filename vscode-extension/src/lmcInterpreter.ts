@@ -39,19 +39,25 @@ export class LMCInterpreter {
     }
 
     private parseLabelsAndData() {
-        for (let i = 0; i < this.programLines.length; i++) {
-            const line = this.programLines[i].trim();
-            if (line.length === 0 || line.startsWith('//')) continue;
+        const labelPattern = /^\s*([A-Za-z_][A-Za-z0-9_]*):/;
 
-            let parts = line.split(/\s+/);
+        for (let i = 0; i < this.programLines.length; i++) {
+            const line = this.programLines[i];
+            const trimmedLine = line.trim();
+            if (trimmedLine.length === 0 || trimmedLine.startsWith('//')) continue;
+
+            let parts = trimmedLine.split(/\s+/);
             if (parts.length === 0) continue;
 
-            // Check for label
-            const potentialLabel = parts[0];
-            if (!LMCInterpreter.isInstruction(potentialLabel)) {
-                this.labels.set(potentialLabel, i); // Store line number for label
-                // Shift parts to remove label for instruction parsing
-                parts = parts.slice(1);
+            const labelMatch = line.match(labelPattern);
+            let hasLabel = false;
+            if (labelMatch) {
+                const labelName = labelMatch[1];
+                this.labels.set(labelName, i); // Store line number for label
+                hasLabel = true;
+                // Remove the label part from the line for further processing
+                parts = trimmedLine.replace(labelMatch[0], '').trim().split(/\s+/);
+                if (parts.length === 0) continue; // Line was just a label
             }
 
             // Handle DAT instruction and store in memory
@@ -60,8 +66,8 @@ export class LMCInterpreter {
                     try {
                         const value = parseInt(parts[1]);
                         this.memory[i] = value;
-                    } catch (e) {
-                        this.outputChannel.appendLine(`Error: Invalid data value on line ${i + 1}`);
+                    } catch (e: any) {
+                        this.outputChannel.appendLine(`Error: Invalid data value on line ${i + 1}: ${e.message}`);
                         this.isHalted = true;
                     }
                 } else {
@@ -215,4 +221,19 @@ export class LMCInterpreter {
     public getHalted(): boolean {
         return this.isHalted;
     }
-}
+
+    public getMemory(): number[] {
+        return [...this.memory]; // Return a copy to prevent external modification
+    }
+
+    public getAccumulator(): number {
+        return this.accumulator;
+    }
+
+    public getProgramCounter(): number {
+        return this.programCounter;
+    }
+
+    public getLabels(): Map<string, number> {
+        return new Map(this.labels); // Return a copy
+    }

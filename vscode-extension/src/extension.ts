@@ -4,6 +4,7 @@ import * as fs from 'fs';
 // import { exec } from 'child_process'; // No longer needed
 import { checkLmcSyntax } from './lmcSyntaxChecker'; // Import the syntax checker
 import { LMCInterpreter } from './lmcInterpreter'; // Import the LMC Interpreter
+import { formatLmcDocument } from './lmcFormatter'; // Import the LMC Formatter
 
 const LMC_KEYWORDS = [
     "ADD", "SUB", "STA", "LDA", "BRA", "BRZ", "BRP", "INP", "OUT", "HLT", "DAT"
@@ -11,20 +12,14 @@ const LMC_KEYWORDS = [
 
 function parseLabels(document: vscode.TextDocument): Map<string, number> {
     const labels = new Map<string, number>();
+    const labelPattern = /^\s*([A-Za-z_][A-Za-z0-9_]*):/;
+
     for (let i = 0; i < document.lineCount; i++) {
-        const line = document.lineAt(i).text.trim();
-        if (line.length === 0 || line.startsWith('//')) {
-            continue;
-        }
-
-        const parts = line.split(/\s+/);
-        if (parts.length === 0) {
-            continue;
-        }
-
-        // A label is a word at the beginning of the line that is not an instruction
-        if (!LMC_KEYWORDS.includes(parts[0].toUpperCase())) {
-            labels.set(parts[0], i); // Store label and its line number
+        const line = document.lineAt(i).text;
+        const match = line.match(labelPattern);
+        if (match) {
+            const labelName = match[1];
+            labels.set(labelName, i); // Store label and its line number
         }
     }
     return labels;
@@ -93,6 +88,33 @@ export function activate(context: vscode.ExtensionContext) {
     } else {
         outputChannel.appendLine('Program execution completed without HLT instruction.');
     }
+
+    // Display final state of registers and memory
+    outputChannel.appendLine('\n--- Final State ---');
+    outputChannel.appendLine(`Accumulator: ${interpreter.getAccumulator()}`);
+    outputChannel.appendLine(`Program Counter: ${interpreter.getProgramCounter()}`);
+    outputChannel.appendLine('Memory:');
+
+    const memory = interpreter.getMemory();
+    const labels = interpreter.getLabels();
+    const addressToLabel = new Map<number, string>();
+    labels.forEach((address, label) => addressToLabel.set(address, label));
+
+    for (let i = 0; i < memory.length; i += 10) {
+        let line = `${String(i).padStart(2, '0')}-${String(i + 9).padStart(2, '0')}: `;
+        for (let j = 0; j < 10; j++) {
+            const currentAddress = i + j;
+            if (currentAddress < memory.length) {
+                const labelAtAddress = addressToLabel.get(currentAddress);
+                if (labelAtAddress) {
+                    line += `${labelAtAddress}(${String(memory[currentAddress]).padStart(4, '0')}) `;
+                } else {
+                    line += `${String(memory[currentAddress]).padStart(4, '0')} `;
+                }
+            }
+        }
+        outputChannel.appendLine(line);
+    }
   });
 
   context.subscriptions.push(runDisposable);
@@ -129,6 +151,15 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   context.subscriptions.push(provider);
+
+  // Register DocumentFormattingEditProvider
+  context.subscriptions.push(
+    vscode.languages.registerDocumentFormattingEditProvider('lmc', {
+      provideDocumentFormattingEdits(document: vscode.TextDocument): vscode.TextEdit[] {
+        return formatLmcDocument(document);
+      }
+    })
+  );
 }
 
 export function deactivate() {

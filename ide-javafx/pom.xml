@@ -32,6 +32,18 @@
             <artifactId>richtextfx</artifactId>
             <version>0.10.9</version>
         </dependency>
+    
+      <dependency>
+        <groupId>org.overturetool.core</groupId>
+        <artifactId>guibuilder</artifactId>
+        <version>2.3.0</version>
+      </dependency>
+    
+      <dependency>
+        <groupId>com.raelity.logman</groupId>
+        <artifactId>logman-core</artifactId>
+        <version>2.3.1</version>
+      </dependency>
     </dependencies>
 
     <build>
@@ -51,6 +63,18 @@
                 <version>0.0.8</version>
                 <configuration>
                     <mainClass>${main.class}</mainClass>
+                    <stripDebug>true</stripDebug>
+                    <compress>2</compress>
+                    <noHeaderFiles>true</noHeaderFiles>
+                    <noManPages>true</noManPages>
+                    <launcher>lmcide</launcher>
+                    <jlinkZip>true</jlinkZip>
+                    <jlinkImageName>lmc-ide</jlinkImageName>
+                    <vendor>LMC IDE Team</vendor>
+                    <modules>
+                        <module>javafx.controls</module>
+                        <module>javafx.fxml</module>
+                    </modules>
                 </configuration>
             </plugin>
         </plugins>
