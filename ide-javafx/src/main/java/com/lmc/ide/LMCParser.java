@@ -59,7 +59,7 @@ public class LMCParser {
 
             Matcher matcher = LINE_PATTERN.matcher(line);
             if (!matcher.matches()) {
-                throw new LMCParseException("Syntax error: Invalid line format.", i + 1);
+                throw new LMCParseException("Syntax error: Invalid line format. Line content: \"" + line + "\"", i + 1);
             }
 
             addressToLineMap.put(currentAddress, i);
@@ -119,12 +119,13 @@ public class LMCParser {
                         }
                     }
                     memoryMap.put(currentAddress, opcode + operandValue);
-                } else {
+                    instructionsMap.put(currentAddress, instruction + " " + operand); // Store mnemonic + operand
+                } else { // Instructions without operand
                     if (operand != null && !operand.isEmpty()) {
                         throw new LMCParseException("Instruction " + instruction + " does not take an operand.", i + 1);
                     }
                     memoryMap.put(currentAddress, opcode);
-                    instructionsMap.put(currentAddress, instruction); // Add instruction to map
+                    instructionsMap.put(currentAddress, instruction); // Store mnemonic
                 }
             }
             currentAddress++;

@@ -1,13 +1,15 @@
 package com.lmc.ide;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class LMCInterpreter {
 
     public enum ExecutionState {
-        RUNNING, HALTED, STOPPED, AWAITING_INPUT, ERROR
+        RUNNING, HALTED, STOPPED, AWAITING_INPUT, ERROR, BREAKPOINT_HIT
     }
 
     private static final int MEMORY_SIZE = 100;
@@ -20,6 +22,7 @@ public class LMCInterpreter {
     private final AtomicBoolean running = new AtomicBoolean(false);
     private String errorMessage = null;
     private Integer inputValue = null;
+    private Set<Integer> breakpoints = new HashSet<>();
 
     private LMCParser.AssembledCode assembledCode;
 
@@ -57,9 +60,18 @@ public class LMCInterpreter {
         this.inputValue = value;
     }
 
+    public void setBreakpoints(Set<Integer> breakpoints) {
+        this.breakpoints = new HashSet<>(breakpoints);
+    }
+
     public ExecutionState step() {
         if (!running.get())
             return ExecutionState.STOPPED;
+
+        // Check for breakpoints
+        if (breakpoints.contains(programCounter)) {
+            return ExecutionState.BREAKPOINT_HIT;
+        }
         if (programCounter < 0 || programCounter >= MEMORY_SIZE) {
             errorMessage = "Program counter out of bounds: " + programCounter;
             return ExecutionState.ERROR;

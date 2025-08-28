@@ -1,32 +1,27 @@
 /* ─────────────────────────────────────────────
    Syntax Highlighting Styles
-─────────────────────────────────────────────── */
+─────────────────────────────────────── */
 
 .keyword {
-    -fx-fill: #800000;
-    /* Dark Red */
+    -fx-fill: var(--primary);
     -fx-font-weight: bold;
 }
 
 .label {
-    -fx-fill: #000080;
-    /* Dark Blue */
+    -fx-fill: var(--info);
 }
 
 .number {
-    -fx-fill: #008000;
-    /* Dark Green */
+    -fx-fill: var(--success);
 }
 
 .comment {
-    -fx-fill: #808080;
-    /* Gray */
+    -fx-fill: var(--text-muted);
     -fx-font-style: italic;
 }
 
 .operand {
-    -fx-fill: #0000FF;
-    /* Blue */
+    -fx-fill: var(--secondary);
 }
 
 /* ─────────────────────────────────────────────
@@ -54,13 +49,13 @@
 ─────────────────────────────────────────────── */
 
 .root.light-theme {
-    -fx-background-color: #ffffff;
-    -fx-text-fill: #000000;
+    -fx-background-color: var(--bg);
+    -fx-text-fill: var(--text);
 }
 
 .root.dark-theme {
-    -fx-background-color: #222222;
-    -fx-text-fill: #ffffff;
+    -fx-background-color: var(--bg);
+    -fx-text-fill: var(--text);
 }
 
 /* ─────────────────────────────────────────────
@@ -74,25 +69,25 @@
 
 /* Selection and caret */
 .code-area .selection {
-    -fx-background-color: #cce5ff;
+    -fx-background-color: var(--highlight);
 }
 
 .code-area .caret {
-    -fx-stroke: black;
+    -fx-stroke: var(--text);
 }
 
 /* Line numbers */
 .light-theme .code-area .linenumbers {
-    -fx-background-color: #e0e0e0;
-    -fx-text-fill: #555555;
+    -fx-background-color: var(--bg-light);
+    -fx-text-fill: var(--text-muted);
 }
 
 .dark-theme .code-area .linenumbers {
-    -fx-background-color: #444444;
-    -fx-text-fill: #aaaaaa;
+    -fx-background-color: var(--bg-light);
+    -fx-text-fill: var(--text-muted);
 }
 
 /* Text fill override for dark theme */
 .dark-theme .code-area .text {
-    -fx-fill: #ffffff;
+    -fx-fill: var(--text);
 }

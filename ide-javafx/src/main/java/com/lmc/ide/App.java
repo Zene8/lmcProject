@@ -7,10 +7,13 @@ import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.scene.Scene;
+import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.geometry.Pos;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
+import javafx.scene.input.MouseButton;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.stage.DirectoryChooser;
@@ -19,22 +22,28 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 import org.fxmisc.richtext.CodeArea;
 import org.fxmisc.richtext.LineNumberFactory;
-
+import java.util.function.IntFunction;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 import java.util.prefs.Preferences;
 
 public class App extends Application {
 
     private CodeArea codeArea;
     private TextArea combinedConsole;
+    private ListView<String> errorListView;
+    private TabPane bottomTabPane;
     private TreeView<File> fileExplorer;
     private Stage primaryStage;
     private BorderPane root;
@@ -47,13 +56,16 @@ public class App extends Application {
     private File currentProjectDirectory;
 
     private Timeline executionTimeline;
-    private Button startButton, stopButton;
+    private Button startButton, stopButton, stepButton;
     private ToggleButton speedModeToggle;
     private Slider speedSlider;
-    private Label[] memoryCellBoxes = new Label[100];
+    private VBox[] memoryCellBoxes = new VBox[100];
     private Label memoryUsedLabel;
     private int lastHighlightedLine = -1;
     private int lastHighlightedMemoryCell = -1;
+
+    private Map<Integer, String> syntaxErrors = new HashMap<>();
+    private Set<Integer> breakpoints = new HashSet<>();
 
     private boolean autocorrectEnabled = true;
     private boolean autoFormattingEnabled = true;
@@ -82,19 +94,32 @@ public class App extends Application {
 
         codeArea.textProperty().addListener((obs, oldText, newText) -> {
             codeArea.setStyleSpans(0, LMCSyntaxHighlighter.computeHighlighting(newText));
+            syntaxErrors.clear(); // Clear previous errors
             try {
                 LMCParser.AssembledCode assembled = parser.parse(newText);
                 updateMemoryVisualizer(assembled.memoryMap, -1, assembled);
             } catch (LMCParser.LMCParseException e) {
-                // Ignore parse errors for live preview
+                syntaxErrors.put(e.getLineNumber(), e.getMessage());
+                updateMemoryVisualizer(new int[100], -1, null); // Clear memory visualizer on parse error
             }
+            updateErrorDisplay(); // New method to update UI based on errors
         });
 
         combinedConsole = new TextArea();
         combinedConsole.setPromptText("LMC Console (Input/Output)");
         combinedConsole.getStyleClass().add("console-area");
-        combinedConsole.setPrefHeight(150);
         combinedConsole.setEditable(false);
+
+        errorListView = new ListView<>();
+        errorListView.getStyleClass().add("error-list-view");
+
+        Tab consoleTab = new Tab("Console", combinedConsole);
+        consoleTab.setClosable(false);
+        Tab errorsTab = new Tab("Errors", errorListView);
+        errorsTab.setClosable(false);
+
+        bottomTabPane = new TabPane(consoleTab, errorsTab);
+        bottomTabPane.setPrefHeight(150);
 
         fileExplorer = new TreeView<>();
         fileExplorer.getStyleClass().add("tree-view");
@@ -123,8 +148,12 @@ public class App extends Application {
         stopButton.setOnAction(e -> stopLMC());
         stopButton.setDisable(true);
 
+        stepButton = new Button("Step");
+        stepButton.setOnAction(e -> executeStep()); // Re-use executeStep
+        stepButton.setDisable(true);
+
         speedModeToggle = new ToggleButton("Fast Mode");
-        speedSlider = new Slider(50, 2000, 500);
+        speedSlider = new Slider(50, 5000, 500);
         speedSlider.setPrefWidth(150);
         speedSlider.setBlockIncrement(50);
         speedSlider.setDisable(true);
@@ -133,13 +162,14 @@ public class App extends Application {
             speedModeToggle.setText(speedModeToggle.isSelected() ? "Slow Mode" : "Fast Mode");
         });
 
-        ToolBar toolBar = new ToolBar(menuBar, spacer, speedModeToggle, speedSlider, startButton, stopButton);
+        ToolBar toolBar = new ToolBar(menuBar, spacer, speedModeToggle, speedSlider, startButton, stopButton,
+                stepButton);
         root.setTop(toolBar);
 
         SplitPane horizontalMainSplitPane = new SplitPane(fileExplorer, codeArea);
         horizontalMainSplitPane.setDividerPositions(0.2);
 
-        SplitPane verticalMainSplitPane = new SplitPane(horizontalMainSplitPane, combinedConsole);
+        SplitPane verticalMainSplitPane = new SplitPane(horizontalMainSplitPane, bottomTabPane);
         verticalMainSplitPane.setOrientation(Orientation.VERTICAL);
         verticalMainSplitPane.setDividerPositions(0.8);
 
@@ -245,18 +275,8 @@ public class App extends Application {
         });
         CustomMenuItem fontSizeMenuItem = new CustomMenuItem(fontSizeSelector);
         fontSizeMenuItem.setHideOnClick(false);
-
-        ColorPicker accentColorPicker = new ColorPicker();
-        accentColorPicker.setValue(Color.web(prefs.get("accentColor", "#007acc")));
-        accentColorPicker.setOnAction(e -> {
-            String hexColor = toHexString(accentColorPicker.getValue());
-            root.setStyle(root.getStyle() + "; -fx-accent-color: " + hexColor + ";");
-            prefs.put("accentColor", hexColor);
-        });
-        CustomMenuItem accentColorMenuItem = new CustomMenuItem(accentColorPicker);
-        accentColorMenuItem.setHideOnClick(false);
         viewMenu.getItems().addAll(lightModeItem, darkModeItem, highContrastModeItem, new SeparatorMenuItem(),
-                fontSizeMenuItem, accentColorMenuItem);
+                fontSizeMenuItem);
 
         Menu helpMenu = new Menu("Help");
         MenuItem lmcOpcodesItem = new MenuItem("LMC Opcodes");
@@ -274,13 +294,16 @@ public class App extends Application {
         TableView<OpcodeEntry> table = new TableView<>();
 
         TableColumn<OpcodeEntry, String> mnemonicCol = new TableColumn<>("Mnemonic");
-        mnemonicCol.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getMnemonic()));
+        mnemonicCol.setCellValueFactory(
+                cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getMnemonic()));
 
         TableColumn<OpcodeEntry, String> opcodeCol = new TableColumn<>("Opcode");
-        opcodeCol.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getOpcode()));
+        opcodeCol.setCellValueFactory(
+                cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getOpcode()));
 
         TableColumn<OpcodeEntry, String> descriptionCol = new TableColumn<>("Description");
-        descriptionCol.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getDescription()));
+        descriptionCol.setCellValueFactory(
+                cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getDescription()));
 
         table.getColumns().addAll(mnemonicCol, opcodeCol, descriptionCol);
 
@@ -295,8 +318,7 @@ public class App extends Application {
                 new OpcodeEntry("INP", "901", "Input value from user to accumulator"),
                 new OpcodeEntry("OUT", "902", "Output value from accumulator"),
                 new OpcodeEntry("HLT", "000", "Halt program"),
-                new OpcodeEntry("DAT", "(data)", "Declare data at this address")
-        );
+                new OpcodeEntry("DAT", "(data)", "Declare data at this address"));
 
         VBox vbox = new VBox(table);
         vbox.setPadding(new Insets(10));
@@ -339,6 +361,7 @@ public class App extends Application {
         stopButton.setDisable(true);
         startButton.setDisable(false);
         speedModeToggle.setDisable(false);
+        stepButton.setDisable(true); // Disable step button on stop
         highlightCurrentInstruction(-1);
         updateMemoryVisualizer(interpreter.getMemory(), -1, interpreter.getAssembledCode());
     }
@@ -346,10 +369,12 @@ public class App extends Application {
     private void runLMC() {
         startButton.setDisable(true);
         stopButton.setDisable(false);
+        stepButton.setDisable(true); // Disable step button when running
         speedModeToggle.setDisable(true);
         combinedConsole.clear();
         combinedConsole.setEditable(false);
         highlightCurrentInstruction(-1);
+        errorListView.getItems().clear(); // Clear errors on run
 
         String lmcCode = codeArea.getText();
         if (autocorrectEnabled) {
@@ -363,6 +388,7 @@ public class App extends Application {
         try {
             currentAssembledCode = parser.parse(lmcCode);
             interpreter.load(currentAssembledCode, createInputProvider());
+            interpreter.setBreakpoints(breakpoints); // Pass breakpoints to interpreter
             updateMemoryVisualizer(interpreter.getMemory(), -1, interpreter.getAssembledCode());
         } catch (LMCParser.LMCParseException e) {
             finishExecution(LMCInterpreter.ExecutionState.ERROR, e.getMessage());
@@ -390,6 +416,9 @@ public class App extends Application {
                 LMCInterpreter.ExecutionState state;
                 do {
                     state = interpreter.step();
+                    if (state == LMCInterpreter.ExecutionState.BREAKPOINT_HIT) {
+                        break; // Exit loop if breakpoint hit
+                    }
                 } while (state == LMCInterpreter.ExecutionState.RUNNING);
 
                 // FIX: Create a final variable to capture the state for the inner lambda
@@ -401,18 +430,24 @@ public class App extends Application {
 
     private void executeStep() {
         LMCInterpreter.ExecutionState state = interpreter.step();
-        if (state == LMCInterpreter.ExecutionState.AWAITING_INPUT) {
+        if (state == LMCInterpreter.ExecutionState.AWAITING_INPUT
+                || state == LMCInterpreter.ExecutionState.BREAKPOINT_HIT) {
             if (executionTimeline != null) {
                 executionTimeline.pause();
             }
-            return; // Wait for input
+            if (state == LMCInterpreter.ExecutionState.BREAKPOINT_HIT) {
+                finishExecution(state, "Breakpoint hit at address " + interpreter.getProgramCounter());
+            }
+            stepButton.setDisable(false); // Enable step button when paused
+            return; // Wait for input or breakpoint handling
         }
 
         if (state != LMCInterpreter.ExecutionState.RUNNING) {
             finishExecution(state, interpreter.getErrorMessage());
         } else {
             int pc = interpreter.getProgramCounter();
-            updateMemoryVisualizer(interpreter.getMemory(), interpreter.getLastAccessedAddress(), interpreter.getAssembledCode());
+            updateMemoryVisualizer(interpreter.getMemory(), interpreter.getLastAccessedAddress(),
+                    interpreter.getAssembledCode());
             highlightCurrentInstruction(pc);
         }
     }
@@ -423,6 +458,7 @@ public class App extends Application {
         stopButton.setDisable(true);
         startButton.setDisable(false);
         speedModeToggle.setDisable(false);
+        stepButton.setDisable(true); // Disable step button by default
 
         updateMemoryVisualizer(interpreter.getMemory(), -1, interpreter.getAssembledCode());
         highlightCurrentInstruction(-1);
@@ -438,7 +474,9 @@ public class App extends Application {
                 combinedConsole.appendText("\n--- Runtime Error ---\n" + message);
                 break;
             case AWAITING_INPUT:
-                // This state is handled by the input provider, no action needed here
+            case BREAKPOINT_HIT:
+                combinedConsole.appendText("\n--- Program Paused ---\n" + message);
+                stepButton.setDisable(false); // Enable step button when paused
                 break;
         }
     }
@@ -460,14 +498,90 @@ public class App extends Application {
         });
     }
 
+    private void updateErrorDisplay() {
+        // This will trigger a re-rendering of the paragraph graphics
+        codeArea.setParagraphGraphicFactory(createGutterGraphicFactory());
+
+        errorListView.getItems().clear();
+        if (!syntaxErrors.isEmpty()) {
+            for (Map.Entry<Integer, String> entry : syntaxErrors.entrySet()) {
+                int lineNumber = entry.getKey();
+                String errorMessage = entry.getValue();
+                String lineContent = "";
+                if (lineNumber > 0 && lineNumber <= codeArea.getParagraphs().size()) {
+                    lineContent = codeArea.getParagraph(lineNumber - 1).getText().trim();
+                }
+                errorListView.getItems()
+                        .add(String.format("Line %d: %s\n  -> %s", lineNumber, errorMessage, lineContent));
+            }
+            bottomTabPane.getSelectionModel().select(1); // Select the Errors tab
+        } else {
+            bottomTabPane.getSelectionModel().select(0); // Select the Console tab if no errors
+        }
+    }
+
+    private IntFunction<Node> createGutterGraphicFactory() {
+        return lineNumber -> {
+            HBox hbox = new HBox(5); // 5 pixels spacing
+            hbox.setAlignment(Pos.CENTER_LEFT);
+
+            // Line number label
+            Label lineNo = new Label(String.format("%3d", lineNumber + 1));
+            lineNo.getStyleClass().add("linenumbers");
+
+            // Breakpoint indicator
+            Region breakpointIndicator = new Region();
+            breakpointIndicator.setPrefSize(16, 16); // Fixed size for alignment
+            breakpointIndicator.getStyleClass().add("breakpoint-area"); // For click handling
+            if (breakpoints.contains(lineNumber + 1)) {
+                breakpointIndicator.getStyleClass().add("breakpoint-indicator");
+            }
+
+            // Error indicator
+            Region errorIndicator = new Region();
+            errorIndicator.setPrefSize(16, 16); // Fixed size for alignment
+            if (syntaxErrors.containsKey(lineNumber + 1)) { // LMCParseException uses 1-based line numbers
+                errorIndicator.getStyleClass().add("error-indicator");
+                Tooltip tooltip = new Tooltip(syntaxErrors.get(lineNumber + 1));
+                Tooltip.install(errorIndicator, tooltip);
+            }
+
+            hbox.getChildren().addAll(lineNo, breakpointIndicator, errorIndicator);
+
+            // Handle click to toggle breakpoint
+            breakpointIndicator.setOnMouseClicked(event -> {
+                if (event.getButton() == MouseButton.PRIMARY) {
+                    int clickedLine = lineNumber + 1;
+                    if (breakpoints.contains(clickedLine)) {
+                        breakpoints.remove(clickedLine);
+                    } else {
+                        breakpoints.add(clickedLine);
+                    }
+                    updateErrorDisplay(); // Re-render gutter to show/hide breakpoint
+                }
+            });
+
+            return hbox;
+        };
+    }
+
     private GridPane createMemoryVisualizer() {
         GridPane grid = new GridPane();
         grid.getStyleClass().add("memory-grid");
         for (int i = 0; i < 100; i++) {
-            Label cellLabel = new Label("000");
-            cellLabel.getStyleClass().add("memory-cell");
-            memoryCellBoxes[i] = cellLabel;
-            grid.add(cellLabel, i % 10, i / 10);
+            Label valueLabel = new Label("000");
+            valueLabel.getStyleClass().add("memory-digit"); // Style for the 3-digit value
+
+            Label instructionLabel = new Label("");
+            instructionLabel.getStyleClass().add("memory-instruction-text"); // Style for the instruction text
+
+            VBox cellBox = new VBox(valueLabel, instructionLabel);
+            cellBox.getStyleClass().add("memory-cell");
+            cellBox.setAlignment(javafx.geometry.Pos.CENTER);
+            cellBox.setSpacing(2); // Small spacing between value and instruction
+
+            memoryCellBoxes[i] = cellBox;
+            grid.add(cellBox, i % 10, i / 10);
         }
         return grid;
     }
@@ -479,16 +593,22 @@ public class App extends Application {
             }
             int memoryUsed = 0;
             for (int i = 0; i < 100; i++) {
+                VBox cellBox = memoryCellBoxes[i];
+                Label valueLabel = (Label) cellBox.getChildren().get(0);
+                Label instructionLabel = (Label) cellBox.getChildren().get(1);
+
                 if (memory[i] != 0)
                     memoryUsed++;
-                String formatted = String.format("%03d", memory[i]);
-                memoryCellBoxes[i].setText(formatted);
+                String formattedValue = String.format("%03d", memory[i]);
+                valueLabel.setText(formattedValue);
 
-                // Apply styling for instructions
+                // Apply styling and text for instructions
                 if (assembledCode != null && assembledCode.instructions.containsKey(i)) {
-                    memoryCellBoxes[i].getStyleClass().add("memory-cell-instruction");
+                    instructionLabel.setText(assembledCode.instructions.get(i));
+                    cellBox.getStyleClass().add("memory-cell-instruction");
                 } else {
-                    memoryCellBoxes[i].getStyleClass().remove("memory-cell-instruction");
+                    instructionLabel.setText("DAT"); // Indicate data cell
+                    cellBox.getStyleClass().remove("memory-cell-instruction");
                 }
             }
             memoryUsedLabel.setText("Memory Used: " + memoryUsed + " / 100");
@@ -501,7 +621,8 @@ public class App extends Application {
         });
     }
 
-    private void updateMemoryVisualizer(Map<Integer, Integer> memoryMap, int highlightedAddress, LMCParser.AssembledCode assembledCode) {
+    private void updateMemoryVisualizer(Map<Integer, Integer> memoryMap, int highlightedAddress,
+            LMCParser.AssembledCode assembledCode) {
         int[] memArray = new int[100];
         for (Map.Entry<Integer, Integer> entry : memoryMap.entrySet()) {
             if (entry.getKey() >= 0 && entry.getKey() < 100) {
