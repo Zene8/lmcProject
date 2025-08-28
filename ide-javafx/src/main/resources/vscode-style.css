@@ -236,3 +236,28 @@
 .code-area .caret {
     -fx-stroke: var(--text-color);
 }
+/* ─────────────────────────────────────────────
+   Memory Cell Instruction Styling
+─────────────────────────────────────────────── */
+.memory-cell-instruction {
+    -fx-background-color: #4CAF50; /* A shade of green */
+    -fx-text-fill: white;
+    -fx-border-color: #388E3C; /* Darker green border */
+    -fx-border-width: 1px;
+}
+
+.dark-mode .memory-cell-instruction {
+    -fx-background-color: #2E7D32; /* Darker green for dark mode */
+    -fx-text-fill: white;
+}
+
+.light-mode .memory-cell-instruction {
+    -fx-background-color: #66BB6A; /* Lighter green for light mode */
+    -fx-text-fill: black;
+}
+
+.high-contrast .memory-cell-instruction {
+    -fx-background-color: yellow;
+    -fx-text-fill: black;
+    -fx-border-color: orange;
+}

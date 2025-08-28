@@ -84,7 +84,7 @@ public class App extends Application {
             codeArea.setStyleSpans(0, LMCSyntaxHighlighter.computeHighlighting(newText));
             try {
                 LMCParser.AssembledCode assembled = parser.parse(newText);
-                updateMemoryVisualizer(assembled.memoryMap, -1);
+                updateMemoryVisualizer(assembled.memoryMap, -1, assembled);
             } catch (LMCParser.LMCParseException e) {
                 // Ignore parse errors for live preview
             }
@@ -258,8 +258,77 @@ public class App extends Application {
         viewMenu.getItems().addAll(lightModeItem, darkModeItem, highContrastModeItem, new SeparatorMenuItem(),
                 fontSizeMenuItem, accentColorMenuItem);
 
-        menuBar.getMenus().addAll(fileMenu, editMenu, featuresMenu, viewMenu);
+        Menu helpMenu = new Menu("Help");
+        MenuItem lmcOpcodesItem = new MenuItem("LMC Opcodes");
+        lmcOpcodesItem.setOnAction(e -> showLmcOpcodes());
+        helpMenu.getItems().add(lmcOpcodesItem);
+
+        menuBar.getMenus().addAll(fileMenu, editMenu, featuresMenu, viewMenu, helpMenu);
         return menuBar;
+    }
+
+    private void showLmcOpcodes() {
+        Stage stage = new Stage();
+        stage.setTitle("LMC Instruction Opcodes");
+
+        TableView<OpcodeEntry> table = new TableView<>();
+
+        TableColumn<OpcodeEntry, String> mnemonicCol = new TableColumn<>("Mnemonic");
+        mnemonicCol.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getMnemonic()));
+
+        TableColumn<OpcodeEntry, String> opcodeCol = new TableColumn<>("Opcode");
+        opcodeCol.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getOpcode()));
+
+        TableColumn<OpcodeEntry, String> descriptionCol = new TableColumn<>("Description");
+        descriptionCol.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getDescription()));
+
+        table.getColumns().addAll(mnemonicCol, opcodeCol, descriptionCol);
+
+        table.getItems().addAll(
+                new OpcodeEntry("ADD", "1xx", "Add contents of mailbox xx to accumulator"),
+                new OpcodeEntry("SUB", "2xx", "Subtract contents of mailbox xx from accumulator"),
+                new OpcodeEntry("STA", "3xx", "Store contents of accumulator in mailbox xx"),
+                new OpcodeEntry("LDA", "5xx", "Load contents of mailbox xx into accumulator"),
+                new OpcodeEntry("BRA", "6xx", "Branch always to mailbox xx"),
+                new OpcodeEntry("BRZ", "7xx", "Branch if accumulator is zero to mailbox xx"),
+                new OpcodeEntry("BRP", "8xx", "Branch if accumulator is positive or zero to mailbox xx"),
+                new OpcodeEntry("INP", "901", "Input value from user to accumulator"),
+                new OpcodeEntry("OUT", "902", "Output value from accumulator"),
+                new OpcodeEntry("HLT", "000", "Halt program"),
+                new OpcodeEntry("DAT", "(data)", "Declare data at this address")
+        );
+
+        VBox vbox = new VBox(table);
+        vbox.setPadding(new Insets(10));
+
+        Scene scene = new Scene(vbox, 600, 400);
+        stage.setScene(scene);
+        stage.show();
+    }
+
+    // Helper class for Opcode Table
+    public static class OpcodeEntry {
+        private final String mnemonic;
+        private final String opcode;
+        private final String description;
+
+        public OpcodeEntry(String mnemonic, String opcode, String description) {
+            this.mnemonic = mnemonic;
+            this.opcode = opcode;
+            this.description = description;
+        }
+
+        public String getMnemonic() {
+            return mnemonic;
+        }
+
+        public String getOpcode() {
+            return opcode;
+        }
+
+        public String getDescription() {
+            return description;
+        }
     }
 
     private void stopLMC() {
@@ -271,7 +340,7 @@ public class App extends Application {
         startButton.setDisable(false);
         speedModeToggle.setDisable(false);
         highlightCurrentInstruction(-1);
-        updateMemoryVisualizer(interpreter.getMemory(), -1);
+        updateMemoryVisualizer(interpreter.getMemory(), -1, interpreter.getAssembledCode());
     }
 
     private void runLMC() {
@@ -294,7 +363,7 @@ public class App extends Application {
         try {
             currentAssembledCode = parser.parse(lmcCode);
             interpreter.load(currentAssembledCode, createInputProvider());
-            updateMemoryVisualizer(interpreter.getMemory(), -1);
+            updateMemoryVisualizer(interpreter.getMemory(), -1, interpreter.getAssembledCode());
         } catch (LMCParser.LMCParseException e) {
             finishExecution(LMCInterpreter.ExecutionState.ERROR, e.getMessage());
             return;
@@ -343,7 +412,7 @@ public class App extends Application {
             finishExecution(state, interpreter.getErrorMessage());
         } else {
             int pc = interpreter.getProgramCounter();
-            updateMemoryVisualizer(interpreter.getMemory(), interpreter.getLastAccessedAddress());
+            updateMemoryVisualizer(interpreter.getMemory(), interpreter.getLastAccessedAddress(), interpreter.getAssembledCode());
             highlightCurrentInstruction(pc);
         }
     }
@@ -355,7 +424,7 @@ public class App extends Application {
         startButton.setDisable(false);
         speedModeToggle.setDisable(false);
 
-        updateMemoryVisualizer(interpreter.getMemory(), -1);
+        updateMemoryVisualizer(interpreter.getMemory(), -1, interpreter.getAssembledCode());
         highlightCurrentInstruction(-1);
 
         switch (finalState) {
@@ -403,7 +472,7 @@ public class App extends Application {
         return grid;
     }
 
-    private void updateMemoryVisualizer(int[] memory, int highlightedAddress) {
+    private void updateMemoryVisualizer(int[] memory, int highlightedAddress, LMCParser.AssembledCode assembledCode) {
         Platform.runLater(() -> {
             if (lastHighlightedMemoryCell != -1) {
                 memoryCellBoxes[lastHighlightedMemoryCell].getStyleClass().remove("memory-cell-highlight");
@@ -414,6 +483,13 @@ public class App extends Application {
                     memoryUsed++;
                 String formatted = String.format("%03d", memory[i]);
                 memoryCellBoxes[i].setText(formatted);
+
+                // Apply styling for instructions
+                if (assembledCode != null && assembledCode.instructions.containsKey(i)) {
+                    memoryCellBoxes[i].getStyleClass().add("memory-cell-instruction");
+                } else {
+                    memoryCellBoxes[i].getStyleClass().remove("memory-cell-instruction");
+                }
             }
             memoryUsedLabel.setText("Memory Used: " + memoryUsed + " / 100");
             if (highlightedAddress != -1) {
@@ -425,14 +501,14 @@ public class App extends Application {
         });
     }
 
-    private void updateMemoryVisualizer(Map<Integer, Integer> memoryMap, int highlightedAddress) {
+    private void updateMemoryVisualizer(Map<Integer, Integer> memoryMap, int highlightedAddress, LMCParser.AssembledCode assembledCode) {
         int[] memArray = new int[100];
         for (Map.Entry<Integer, Integer> entry : memoryMap.entrySet()) {
             if (entry.getKey() >= 0 && entry.getKey() < 100) {
                 memArray[entry.getKey()] = entry.getValue();
             }
         }
-        updateMemoryVisualizer(memArray, highlightedAddress);
+        updateMemoryVisualizer(memArray, highlightedAddress, assembledCode);
     }
 
     private InputProvider createInputProvider() {

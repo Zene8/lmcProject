@@ -10,10 +10,12 @@ public class LMCParser {
     public static class AssembledCode {
         public final Map<Integer, Integer> memoryMap;
         public final Map<Integer, Integer> addressToLineMap;
+        public final Map<Integer, String> instructions; // New field to store instruction addresses and mnemonics
 
-        AssembledCode(Map<Integer, Integer> memoryMap, Map<Integer, Integer> addressToLineMap) {
+        AssembledCode(Map<Integer, Integer> memoryMap, Map<Integer, Integer> addressToLineMap, Map<Integer, String> instructions) {
             this.memoryMap = Collections.unmodifiableMap(memoryMap);
             this.addressToLineMap = Collections.unmodifiableMap(addressToLineMap);
+            this.instructions = Collections.unmodifiableMap(instructions);
         }
     }
 
@@ -43,6 +45,7 @@ public class LMCParser {
         List<String[]> parsedLines = new ArrayList<>();
         Map<Integer, Integer> memoryMap = new HashMap<>();
         Map<Integer, Integer> addressToLineMap = new HashMap<>();
+        Map<Integer, String> instructionsMap = new HashMap<>(); // New map for instructions
 
         int currentAddress = 0;
         String[] lines = code.split("\\r?\\n");
@@ -121,11 +124,12 @@ public class LMCParser {
                         throw new LMCParseException("Instruction " + instruction + " does not take an operand.", i + 1);
                     }
                     memoryMap.put(currentAddress, opcode);
+                    instructionsMap.put(currentAddress, instruction); // Add instruction to map
                 }
             }
             currentAddress++;
         }
-        return new AssembledCode(memoryMap, addressToLineMap);
+        return new AssembledCode(memoryMap, addressToLineMap, instructionsMap); // Pass instructionsMap
     }
 
     private int getOpcode(String instruction, int line) throws LMCParseException {

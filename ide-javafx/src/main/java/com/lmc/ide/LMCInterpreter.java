@@ -21,8 +21,15 @@ public class LMCInterpreter {
     private String errorMessage = null;
     private Integer inputValue = null;
 
+    private LMCParser.AssembledCode assembledCode;
+
+    public LMCParser.AssembledCode getAssembledCode() {
+        return assembledCode;
+    }
+
     public void load(LMCParser.AssembledCode assembledCode, InputProvider provider) {
         this.inputProvider = provider;
+        this.assembledCode = assembledCode; // Added this line
         this.outputBuffer.setLength(0);
         this.errorMessage = null;
         this.programCounter = 0;
