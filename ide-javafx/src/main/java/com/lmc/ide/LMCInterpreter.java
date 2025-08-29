@@ -7,7 +7,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class LMCInterpreter {
-
     public enum ExecutionState {
         RUNNING, HALTED, STOPPED, AWAITING_INPUT, ERROR, BREAKPOINT_HIT
     }
@@ -23,7 +22,6 @@ public class LMCInterpreter {
     private String errorMessage = null;
     private Integer inputValue = null;
     private Set<Integer> breakpoints = new HashSet<>();
-
     private LMCParser.AssembledCode assembledCode;
 
     public LMCParser.AssembledCode getAssembledCode() {
@@ -32,7 +30,7 @@ public class LMCInterpreter {
 
     public void load(LMCParser.AssembledCode assembledCode, InputProvider provider) {
         this.inputProvider = provider;
-        this.assembledCode = assembledCode; // Added this line
+        this.assembledCode = assembledCode;
         this.outputBuffer.setLength(0);
         this.errorMessage = null;
         this.programCounter = 0;
@@ -40,7 +38,6 @@ public class LMCInterpreter {
         this.lastAccessedAddress = -1;
         this.inputValue = null;
         Arrays.fill(memory, 0);
-
         for (Map.Entry<Integer, Integer> entry : assembledCode.memoryMap.entrySet()) {
             if (entry.getKey() >= 0 && entry.getKey() < MEMORY_SIZE) {
                 memory[entry.getKey()] = entry.getValue();
@@ -67,22 +64,17 @@ public class LMCInterpreter {
     public ExecutionState step() {
         if (!running.get())
             return ExecutionState.STOPPED;
-
-        // Check for breakpoints
-        if (breakpoints.contains(programCounter)) {
+        if (breakpoints.contains(programCounter))
             return ExecutionState.BREAKPOINT_HIT;
-        }
         if (programCounter < 0 || programCounter >= MEMORY_SIZE) {
             errorMessage = "Program counter out of bounds: " + programCounter;
             return ExecutionState.ERROR;
         }
-
-        lastAccessedAddress = -1; // Reset before execution
+        lastAccessedAddress = -1;
         int instruction = memory[programCounter];
         int opcode = instruction / 100;
         int operand = instruction % 100;
         int nextPC = programCounter + 1;
-
         try {
             switch (opcode) {
                 case 1:
@@ -112,9 +104,8 @@ public class LMCInterpreter {
                     if (operand == 1) { // INP
                         if (inputValue != null) {
                             accumulator = inputValue;
-                            inputValue = null; // Consume input
+                            inputValue = null;
                         } else {
-                            // No input available, request it and wait
                             inputProvider.requestInput().thenAccept(this::setInputValue);
                             return ExecutionState.AWAITING_INPUT;
                         }
@@ -133,7 +124,6 @@ public class LMCInterpreter {
             errorMessage = e.getMessage();
             return ExecutionState.ERROR;
         }
-
         programCounter = nextPC;
         return ExecutionState.RUNNING;
     }
@@ -152,7 +142,6 @@ public class LMCInterpreter {
         memory[address] = value;
     }
 
-    // Getters for UI updates
     public int getProgramCounter() {
         return programCounter;
     }

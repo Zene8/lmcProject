@@ -11,11 +11,12 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.util.Duration;
 import org.fxmisc.richtext.CodeArea;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 public class LMCIDEFeatures {
@@ -29,10 +30,10 @@ public class LMCIDEFeatures {
 
     private final Tooltip tooltip = new Tooltip();
     private final PauseTransition tooltipDelay = new PauseTransition(Duration.millis(500));
-    private double lastMouseX;
-    private double lastMouseY;
-
+    private double lastMouseX, lastMouseY;
     private final ContextMenu suggestionsPopup = new ContextMenu();
+    private Set<Integer> breakpoints = new HashSet<>();
+    private CompletableFuture<Integer> pendingInputRequest;
 
     private static final List<String> LMC_INSTRUCTIONS = Arrays.asList(
             "INP", "OUT", "LDA", "STA", "ADD", "SUB", "BRA", "BRZ", "BRP", "HLT", "DAT");
@@ -46,61 +47,61 @@ public class LMCIDEFeatures {
         this.autoFormattingEnabled = autoFormattingEnabled;
         this.errorHighlightingEnabled = errorHighlightingEnabled;
 
-        setupAutocomplete();
-        setupErrorHighlighting();
-        setupMemoryUsageTracking();
-        setupInstructionTooltips();
-        setupLabelNavigation();
-        setupPasteFormatting();
+        setupAllFeatures();
     }
 
-    private void setupAutocomplete() {
-        app.getCodeTabPane().getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
-            if (newTab != null) {
-                CodeArea codeArea = app.getCurrentCodeArea();
-                if (codeArea != null) {
-                    codeArea.textProperty().addListener((obs2, oldText, newText) -> {
-                        String currentWord = getCurrentWord();
-                        if (currentWord.isEmpty()) {
-                            suggestionsPopup.hide();
-                            return;
+    private void setupAllFeatures() {
+        app.getUiController().getCodeTabPane().getSelectionModel().selectedItemProperty()
+                .addListener((obs, oldTab, newTab) -> {
+                    if (newTab != null) {
+                        CodeArea codeArea = app.getCurrentCodeArea();
+                        if (codeArea != null) {
+                            setupAutocomplete(codeArea);
+                            setupErrorHighlighting(codeArea);
+                            setupMemoryUsageTracking(codeArea);
+                            setupInstructionTooltips(codeArea);
+                            setupLabelNavigation(codeArea);
+                            setupPasteFormatting(codeArea);
                         }
+                    }
+                });
+    }
 
-                        List<MenuItem> suggestions = LMC_INSTRUCTIONS.stream()
-                                .filter(instr -> instr.startsWith(currentWord.toUpperCase()))
-                                .map(instr -> {
-                                    MenuItem item = new MenuItem(instr);
-                                    item.setOnAction(e -> completeInstruction(instr));
-                                    return item;
-                                })
-                                .collect(Collectors.toList());
-
-                        if (suggestions.isEmpty()) {
-                            suggestionsPopup.hide();
-                        } else {
-                            suggestionsPopup.getItems().setAll(suggestions);
-                            Point2D caretPos = codeArea.getCaretBounds()
-                                    .map(bounds -> new Point2D(bounds.getMinX(), bounds.getMaxY())).orElse(new Point2D(0, 0));
-                            suggestionsPopup.show(codeArea, caretPos.getX(), caretPos.getY());
-                        }
-                    });
-
-                    codeArea.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
-                        if (suggestionsPopup.isShowing() && e.getCode() == KeyCode.TAB) {
-                            if (!suggestionsPopup.getItems().isEmpty()) {
-                                suggestionsPopup.getItems().get(0).fire();
-                                e.consume();
-                            }
-                        }
-                    });
+    private void setupAutocomplete(CodeArea codeArea) {
+        codeArea.textProperty().addListener((obs, oldText, newText) -> {
+            String currentWord = getCurrentWord(codeArea);
+            if (currentWord.isEmpty()) {
+                suggestionsPopup.hide();
+                return;
+            }
+            List<MenuItem> suggestions = LMC_INSTRUCTIONS.stream()
+                    .filter(instr -> instr.startsWith(currentWord.toUpperCase()))
+                    .map(instr -> {
+                        MenuItem item = new MenuItem(instr);
+                        item.setOnAction(e -> completeInstruction(codeArea, instr));
+                        return item;
+                    })
+                    .collect(Collectors.toList());
+            if (suggestions.isEmpty()) {
+                suggestionsPopup.hide();
+            } else {
+                suggestionsPopup.getItems().setAll(suggestions);
+                Point2D caretPos = codeArea.getCaretBounds().map(b -> new Point2D(b.getMinX(), b.getMaxY()))
+                        .orElse(new Point2D(0, 0));
+                suggestionsPopup.show(codeArea, caretPos.getX(), caretPos.getY());
+            }
+        });
+        codeArea.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+            if (suggestionsPopup.isShowing() && e.getCode() == KeyCode.TAB) {
+                if (!suggestionsPopup.getItems().isEmpty()) {
+                    suggestionsPopup.getItems().get(0).fire();
+                    e.consume();
                 }
             }
         });
     }
 
-    private String getCurrentWord() {
-        CodeArea codeArea = app.getCurrentCodeArea();
-        if (codeArea == null) return "";
+    private String getCurrentWord(CodeArea codeArea) {
         int caretPos = codeArea.getCaretPosition();
         String text = codeArea.getText();
         int start = caretPos - 1;
@@ -110,9 +111,7 @@ public class LMCIDEFeatures {
         return text.substring(start + 1, caretPos);
     }
 
-    private void completeInstruction(String instruction) {
-        CodeArea codeArea = app.getCurrentCodeArea();
-        if (codeArea == null) return;
+    private void completeInstruction(CodeArea codeArea, String instruction) {
         int caretPos = codeArea.getCaretPosition();
         String text = codeArea.getText();
         int start = caretPos - 1;
@@ -123,157 +122,105 @@ public class LMCIDEFeatures {
         suggestionsPopup.hide();
     }
 
-    private void setupErrorHighlighting() {
-        app.getCodeTabPane().getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
-            if (newTab != null) {
-                CodeArea codeArea = app.getCurrentCodeArea();
-                if (codeArea != null) {
-                    codeArea.textProperty().addListener((obs2, oldText, newText) -> {
-                        if (!errorHighlightingEnabled) {
-                            clearParagraphStyles();
-                            return;
-                        }
-                        clearParagraphStyles();
-                        try {
-                            lmcParser.parse(newText);
-                        } catch (LMCParser.LMCParseException e) {
-                            Platform.runLater(() -> {
-                                int lineNumber = e.getLineNumber() - 1;
-                                if (lineNumber >= 0 && lineNumber < codeArea.getParagraphs().size()) {
-                                    codeArea.setParagraphStyle(lineNumber, Collections.singleton("error-line"));
-                                }
-                            });
-                        }
-                    });
+    private void setupErrorHighlighting(CodeArea codeArea) {
+        codeArea.textProperty().addListener((obs, oldText, newText) -> {
+            if (!errorHighlightingEnabled) {
+                clearParagraphStyles(codeArea);
+                return;
+            }
+            clearParagraphStyles(codeArea);
+            try {
+                lmcParser.parse(newText);
+            } catch (LMCParser.LMCParseException e) {
+                Platform.runLater(() -> {
+                    int lineNumber = e.getLineNumber() - 1;
+                    if (lineNumber >= 0 && lineNumber < codeArea.getParagraphs().size()) {
+                        codeArea.setParagraphStyle(lineNumber, Collections.singleton("error-line"));
+                    }
+                });
+            }
+        });
+    }
+
+    private void setupMemoryUsageTracking(CodeArea codeArea) {
+        codeArea.textProperty().addListener((obs, oldText, newText) -> {
+            try {
+                LMCParser.AssembledCode assembledCode = lmcParser.parse(newText);
+                int used = assembledCode.memoryMap.size();
+                Platform.runLater(() -> memoryUsageLabel.setText("Memory Used: " + used + " / 100"));
+            } catch (LMCParser.LMCParseException e) {
+                Platform.runLater(() -> memoryUsageLabel.setText("Memory Used: Error"));
+            }
+        });
+    }
+
+    private void setupInstructionTooltips(CodeArea codeArea) {
+        tooltipDelay.setOnFinished(e -> {
+            int pos = codeArea.hit(lastMouseX, lastMouseY).getInsertionIndex();
+            String word = extractWordAt(codeArea, pos);
+            if (LMC_INSTRUCTIONS.contains(word.toUpperCase())) {
+                tooltip.setText(getInstructionHelp(word));
+                tooltip.show(codeArea.getScene().getWindow(),
+                        codeArea.localToScreen(0, 0).getX() + lastMouseX + 15,
+                        codeArea.localToScreen(0, 0).getY() + lastMouseY + 15);
+            } else {
+                tooltip.hide();
+            }
+        });
+        codeArea.setOnMouseMoved(e -> {
+            lastMouseX = e.getX();
+            lastMouseY = e.getY();
+            tooltipDelay.playFromStart();
+        });
+        codeArea.setOnMouseExited(e -> {
+            tooltip.hide();
+            tooltipDelay.stop();
+        });
+    }
+
+    private void setupLabelNavigation(CodeArea codeArea) {
+        codeArea.setOnMouseClicked(event -> {
+            if (event.isControlDown()) {
+                String label = extractWordAt(codeArea, codeArea.getCaretPosition());
+                int line = findLabelDefinition(codeArea, label);
+                if (line >= 0) {
+                    codeArea.moveTo(line, 0);
+                    codeArea.requestFollowCaret();
                 }
             }
         });
     }
 
-    private void setupMemoryUsageTracking() {
-        app.getCodeTabPane().getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
-            if (newTab != null) {
-                CodeArea codeArea = app.getCurrentCodeArea();
-                if (codeArea != null) {
-                    codeArea.textProperty().addListener((obs2, oldText, newText) -> {
-                        try {
-                            LMCParser.AssembledCode assembledCode = lmcParser.parse(newText);
-                            Map<Integer, Integer> memory = assembledCode.memoryMap;
-                            int used = memory.size();
-                            Platform.runLater(() -> memoryUsageLabel.setText("Memory Used: " + used + " / 100"));
-                        } catch (LMCParser.LMCParseException e) {
-                            Platform.runLater(() -> memoryUsageLabel.setText("Memory Used: Error"));
-                        }
-                    });
-                }
+    private void setupPasteFormatting(CodeArea codeArea) {
+        codeArea.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (event.isControlDown() && event.getCode() == KeyCode.V) {
+                Platform.runLater(() -> {
+                    if (autoFormattingEnabled) {
+                        String formatted = LMCFormatter.format(codeArea.getText());
+                        codeArea.replaceText(formatted);
+                    }
+                });
             }
         });
     }
 
-    private void setupInstructionTooltips() {
-        app.getCodeTabPane().getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
-            if (newTab != null) {
-                CodeArea codeArea = app.getCurrentCodeArea();
-                if (codeArea != null) {
-                    tooltipDelay.setOnFinished(actionEvent -> {
-                        int pos = codeArea.hit(lastMouseX, lastMouseY).getInsertionIndex();
-                        String word = extractWordAt(pos);
-
-                        if (LMC_INSTRUCTIONS.contains(word.toUpperCase())) {
-                            tooltip.setText(getInstructionHelp(word));
-                            tooltip.show(codeArea.getScene().getWindow(),
-                                    codeArea.localToScreen(0, 0).getX() + lastMouseX + 15,
-                                    codeArea.localToScreen(0, 0).getY() + lastMouseY + 15);
-                        } else {
-                            tooltip.hide();
-                        }
-                    });
-
-                    codeArea.setOnMouseMoved(mouseEvent -> {
-                        lastMouseX = mouseEvent.getX();
-                        lastMouseY = mouseEvent.getY();
-                        tooltipDelay.playFromStart();
-                    });
-
-                    codeArea.setOnMouseExited(mouseEvent -> {
-                        tooltip.hide();
-                        tooltipDelay.stop();
-                    });
-                }
-            }
-        });
-    }
-
-    private void setupLabelNavigation() {
-        app.getCodeTabPane().getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
-            if (newTab != null) {
-                CodeArea codeArea = app.getCurrentCodeArea();
-                if (codeArea != null) {
-                    codeArea.setOnMouseClicked(event -> {
-                        if (event.isControlDown()) {
-                            String label = extractWordAt(codeArea.getCaretPosition());
-                            int line = findLabelDefinition(label);
-                            if (line >= 0) {
-                                codeArea.moveTo(line, 0);
-                                codeArea.requestFollowCaret();
-                            }
-                        }
-                    });
-                }
-            }
-        });
-    }
-
-    private void setupPasteFormatting() {
-        app.getCodeTabPane().getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
-            if (newTab != null) {
-                CodeArea codeArea = app.getCurrentCodeArea();
-                if (codeArea != null) {
-                    codeArea.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
-                        if (event.isControlDown() && event.getCode() == KeyCode.V) {
-                            Platform.runLater(() -> {
-                                if (autoFormattingEnabled) {
-                                    String formatted = LMCFormatter.format(codeArea.getText());
-                                    codeArea.replaceText(formatted);
-                                }
-                            });
-                        }
-                    });
-                }
-            }
-        });
-    }
-
-    private String extractWordAt(int pos) {
-        CodeArea codeArea = app.getCurrentCodeArea();
-        if (codeArea == null) return "";
+    private String extractWordAt(CodeArea codeArea, int pos) {
         String text = codeArea.getText();
-        if (pos < 0 || pos >= text.length()) {
+        if (pos < 0 || pos >= text.length())
             return "";
-        }
-
-        int start = pos;
-        int end = pos;
-
-        while (start > 0 && Character.isLetterOrDigit(text.charAt(start - 1))) {
+        int start = pos, end = pos;
+        while (start > 0 && Character.isLetterOrDigit(text.charAt(start - 1)))
             start--;
-        }
-
-        while (end < text.length() && Character.isLetterOrDigit(text.charAt(end))) {
+        while (end < text.length() && Character.isLetterOrDigit(text.charAt(end)))
             end++;
-        }
-
         return text.substring(start, end);
     }
 
-    private int findLabelDefinition(String label) {
-        CodeArea codeArea = app.getCurrentCodeArea();
-        if (codeArea == null) return -1;
+    private int findLabelDefinition(CodeArea codeArea, String label) {
         String[] lines = codeArea.getText().split("\r?\n");
         for (int i = 0; i < lines.length; i++) {
-            if (lines[i].trim().startsWith(label.toUpperCase() + ":")) {
+            if (lines[i].trim().startsWith(label.toUpperCase() + ":"))
                 return i;
-            }
         }
         return -1;
     }
@@ -307,95 +254,33 @@ public class LMCIDEFeatures {
         }
     }
 
-    private void clearParagraphStyles() {
-        CodeArea codeArea = app.getCurrentCodeArea();
-        if (codeArea == null) return;
+    private void clearParagraphStyles(CodeArea codeArea) {
         for (int i = 0; i < codeArea.getParagraphs().size(); i++) {
             codeArea.setParagraphStyle(i, Collections.emptyList());
         }
     }
 
-    public void setAutocorrectEnabled(boolean autocorrectEnabled) {
-        this.autocorrectEnabled = autocorrectEnabled;
+    public void setAutocorrectEnabled(boolean b) {
+        this.autocorrectEnabled = b;
     }
 
-    public void setAutoFormattingEnabled(boolean autoFormattingEnabled) {
-        this.autoFormattingEnabled = autoFormattingEnabled;
+    public void setAutoFormattingEnabled(boolean b) {
+        this.autoFormattingEnabled = b;
     }
 
-    public void setErrorHighlightingEnabled(boolean errorHighlightingEnabled) {
-        this.errorHighlightingEnabled = errorHighlightingEnabled;
-        CodeArea codeArea = app.getCurrentCodeArea();
-        if (codeArea != null && codeArea.getText() != null && !codeArea.getText().isEmpty()) {
-            codeArea.replaceText(0, codeArea.getText().length(), codeArea.getText());
-        }
+    public void setErrorHighlightingEnabled(boolean b) {
+        this.errorHighlightingEnabled = b;
     }
 
-    public String autocorrectInstruction(String instruction) {
-        String bestMatch = instruction;
-        int minDistance = Integer.MAX_VALUE;
-
-        for (String validInstruction : LMC_INSTRUCTIONS) {
-            int distance = levenshteinDistance(instruction.toUpperCase(), validInstruction);
-            if (distance < minDistance) {
-                minDistance = distance;
-                bestMatch = validInstruction;
-            }
-        }
-        return (minDistance <= 2) ? bestMatch : instruction;
+    public Set<Integer> getBreakpoints() {
+        return breakpoints;
     }
 
-    public String autocorrectCode(String code) {
-        StringBuilder correctedCode = new StringBuilder();
-        String[] lines = code.split("\r?\n");
-
-        for (String line : lines) {
-            String[] parts = line.trim().split("\s+");
-            if (parts.length > 0 && !parts[0].isEmpty()) {
-                int instructionIndex = 0;
-                if (parts.length > 1 && parts[0].endsWith(":")) {
-                    instructionIndex = 1;
-                }
-
-                if (instructionIndex < parts.length) {
-                    String originalInstruction = parts[instructionIndex];
-                    String correctedInstruction = autocorrectInstruction(originalInstruction);
-
-                    if (!originalInstruction.equals(correctedInstruction)) {
-                        parts[instructionIndex] = correctedInstruction;
-                        correctedCode.append(String.join(" ", parts)).append("\n");
-                    } else {
-                        correctedCode.append(line).append("\n");
-                    }
-                } else {
-                    correctedCode.append(line).append("\n");
-                }
-            } else {
-                correctedCode.append(line).append("\n");
-            }
-        }
-        return correctedCode.toString();
+    public void setPendingInputRequest(CompletableFuture<Integer> req) {
+        this.pendingInputRequest = req;
     }
 
-    private int levenshteinDistance(String s1, String s2) {
-        int[] costs = new int[s2.length() + 1];
-        for (int i = 0; i <= s1.length(); i++) {
-            int lastValue = i;
-            for (int j = 0; j <= s2.length(); j++) {
-                if (i == 0)
-                    costs[j] = j;
-                else if (j > 0) {
-                    int newValue = costs[j - 1];
-                    if (s1.charAt(i - 1) != s2.charAt(j - 1)) {
-                        newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
-                    }
-                    costs[j - 1] = lastValue;
-                    lastValue = newValue;
-                }
-            }
-            if (i > 0)
-                costs[s2.length()] = lastValue;
-        }
-        return costs[s2.length()];
+    public CompletableFuture<Integer> getPendingInputRequest() {
+        return pendingInputRequest;
     }
 }

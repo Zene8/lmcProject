@@ -32,18 +32,17 @@
             <artifactId>richtextfx</artifactId>
             <version>0.10.9</version>
         </dependency>
-    
-      <dependency>
-        <groupId>org.overturetool.core</groupId>
-        <artifactId>guibuilder</artifactId>
-        <version>2.3.0</version>
-      </dependency>
-    
-      <dependency>
-        <groupId>com.raelity.logman</groupId>
-        <artifactId>logman-core</artifactId>
-        <version>2.3.1</version>
-      </dependency>
+        <!-- Note: The following dependencies are not modular and may produce warnings -->
+        <dependency>
+            <groupId>org.overturetool.core</groupId>
+            <artifactId>guibuilder</artifactId>
+            <version>2.3.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.raelity.logman</groupId>
+            <artifactId>logman-core</artifactId>
+            <version>2.3.1</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -51,7 +50,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.1</version>
+                <version>3.10.1</version> <!-- Updated version -->
                 <configuration>
                     <source>${maven.compiler.source}</source>
                     <target>${maven.compiler.target}</target>
@@ -60,22 +59,16 @@
             <plugin>
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>
-                <version>0.0.8</version>
-                <configuration>
-                    <mainClass>${main.class}</mainClass>
-                    <stripDebug>true</stripDebug>
-                    <compress>2</compress>
-                    <noHeaderFiles>true</noHeaderFiles>
-                    <noManPages>true</noManPages>
-                    <launcher>lmcide</launcher>
-                    <jlinkZip>true</jlinkZip>
-                    <jlinkImageName>lmc-ide</jlinkImageName>
-                    <vendor>LMC IDE Team</vendor>
-                    <modules>
-                        <module>javafx.controls</module>
-                        <module>javafx.fxml</module>
-                    </modules>
-                </configuration>
+                <version>0.0.8</version> <!-- Version is correct, but config was wrong -->
+                <executions>
+                    <execution>
+                        <!-- Default configuration for running the app -->
+                        <id>default-cli</id>
+                        <configuration>
+                            <mainClass>${main.class}</mainClass>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

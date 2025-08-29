@@ -1,82 +1,67 @@
 /* ─────────────────────────────────────────────
-   Syntax Highlighting Styles
-─────────────────────────────────────── */
+ * LMC SYNTAX HIGHLIGHTING (v4)
+ * Uses the new OKLCH-derived color palette.
+ * ───────────────────────────────────────────── */
 
-.keyword {
-    -fx-fill: var(--primary);
-    -fx-font-weight: bold;
+/* --- Dark Mode Syntax --- */
+.dark-mode .keyword {
+    -fx-fill: #8b8bff;
 }
 
-.label {
-    -fx-fill: var(--info);
+/* --primary */
+.dark-mode .operand {
+    -fx-fill: #e0b869;
 }
 
-.number {
-    -fx-fill: var(--success);
+/* --secondary */
+.dark-mode .number {
+    -fx-fill: #82c4a4;
 }
 
-.comment {
-    -fx-fill: var(--text-muted);
+/* --success */
+.dark-mode .label {
+    -fx-fill: #92aef1;
+}
+
+/* --info */
+.dark-mode .comment {
+    -fx-fill: #9ea0e5;
     -fx-font-style: italic;
 }
 
-.operand {
-    -fx-fill: var(--secondary);
+/* --text-muted */
+
+/* --- Light Mode Syntax --- */
+.light-mode .keyword {
+    -fx-fill: #005ae0;
 }
 
-/* ─────────────────────────────────────────────
-   Error & Suggestion Feedback
-─────────────────────────────────────────────── */
+.light-mode .operand {
+    -fx-fill: #c78600;
+}
+
+.light-mode .number {
+    -fx-fill: #198754;
+}
+
+.light-mode .label {
+    -fx-fill: #563d7c;
+}
+
+.light-mode .comment {
+    -fx-fill: #5a6169;
+    -fx-font-style: italic;
+}
+
+/* --- Shared Styles --- */
+.keyword {
+    -fx-font-weight: bold;
+}
 
 .error-line {
-    -fx-background-color: rgba(255, 0, 0, 0.2);
-    /* Light red background */
+    -fx-background-color: rgba(220, 53, 69, 0.2);
 }
 
-.suggestion {
-    -fx-underline: true;
-    -fx-fill: orange;
-}
-
-/* Highlight current line (optional) */
 .current-line {
-    -fx-background-color: #ffff0040;
-    /* Light yellow with transparency */
-}
-
-/* ─────────────────────────────────────────────
-   Theme Base Styles
-─────────────────────────────────────── */
-
-.root {
-    -fx-background-color: var(--bg);
-    -fx-text-fill: var(--text);
-}
-
-/* ─────────────────────────────────────────────
-   CodeArea Specific Styling
-─────────────────────────────────────────────── */
-
-.code-area {
-    -fx-font-family: "Consolas", "Courier New", monospace;
-    -fx-font-size: 14px;
-}
-
-/* Selection and caret */
-.code-area .selection {
-    -fx-background-color: var(--highlight);
-}
-
-.code-area .caret {
-    -fx-stroke: var(--text);
-}
-
-/* Line numbers */
-.code-area .linenumbers {
-    -fx-background-color: var(--bg-light);
-    -fx-text-fill: var(--text-muted);
-}
-
-.code-area .text {
-    -fx-fill: var(--text);
+    -fx-background-color: rgba(108, 117, 125, 0.2);
 }
