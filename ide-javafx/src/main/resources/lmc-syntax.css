@@ -46,14 +46,9 @@
 
 /* ─────────────────────────────────────────────
    Theme Base Styles
-─────────────────────────────────────────────── */
+─────────────────────────────────────── */
 
-.root.light-theme {
-    -fx-background-color: var(--bg);
-    -fx-text-fill: var(--text);
-}
-
-.root.dark-theme {
+.root {
     -fx-background-color: var(--bg);
     -fx-text-fill: var(--text);
 }
@@ -77,17 +72,11 @@
 }
 
 /* Line numbers */
-.light-theme .code-area .linenumbers {
+.code-area .linenumbers {
     -fx-background-color: var(--bg-light);
     -fx-text-fill: var(--text-muted);
 }
 
-.dark-theme .code-area .linenumbers {
-    -fx-background-color: var(--bg-light);
-    -fx-text-fill: var(--text-muted);
-}
-
-/* Text fill override for dark theme */
-.dark-theme .code-area .text {
+.code-area .text {
     -fx-fill: var(--text);
 }

@@ -38,9 +38,15 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.prefs.Preferences;
 
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+
 public class App extends Application {
 
-    private CodeArea codeArea;
+    private Image folderIcon;
+    private Image fileIcon;
+
+    public TabPane codeTabPane;
     private TextArea combinedConsole;
     private ListView<String> errorListView;
     private TabPane bottomTabPane;
@@ -64,6 +70,15 @@ public class App extends Application {
     private int lastHighlightedLine = -1;
     private int lastHighlightedMemoryCell = -1;
 
+    private TextField searchField;
+    private Button findButton;
+    private TextField replaceField;
+    private Button replaceButton;
+    private Button replaceAllButton;
+
+    private Label lineInfoLabel;
+    private Label columnInfoLabel;
+
     private Map<Integer, String> syntaxErrors = new HashMap<>();
     private Set<Integer> breakpoints = new HashSet<>();
 
@@ -79,31 +94,23 @@ public class App extends Application {
         interpreter = new LMCInterpreter();
         parser = new LMCParser();
 
+        try {
+            folderIcon = new Image(getClass().getResourceAsStream("/icons/folder.svg"));
+            fileIcon = new Image(getClass().getResourceAsStream("/icons/file.svg"));
+        } catch (Exception e) {
+            System.err.println("Error loading icons: " + e.getMessage());
+        }
+
         Preferences prefs = Preferences.userNodeForPackage(App.class);
         int initialFontSize = prefs.getInt("fontSize", 14);
 
-        codeArea = new CodeArea();
-        codeArea.setParagraphGraphicFactory(LineNumberFactory.get(codeArea));
-        codeArea.getStyleClass().add("code-area");
+        codeTabPane = new TabPane();
 
         GridPane memoryVisualizer = createMemoryVisualizer();
         memoryUsedLabel = new Label("Memory Used: 0 / 100");
 
-        ideFeatures = new LMCIDEFeatures(codeArea, parser, new Label(),
+        ideFeatures = new LMCIDEFeatures(this, parser, new Label(),
                 autocorrectEnabled, autoFormattingEnabled, errorHighlightingEnabled);
-
-        codeArea.textProperty().addListener((obs, oldText, newText) -> {
-            codeArea.setStyleSpans(0, LMCSyntaxHighlighter.computeHighlighting(newText));
-            syntaxErrors.clear(); // Clear previous errors
-            try {
-                LMCParser.AssembledCode assembled = parser.parse(newText);
-                updateMemoryVisualizer(assembled.memoryMap, -1, assembled);
-            } catch (LMCParser.LMCParseException e) {
-                syntaxErrors.put(e.getLineNumber(), e.getMessage());
-                updateMemoryVisualizer(new int[100], -1, null); // Clear memory visualizer on parse error
-            }
-            updateErrorDisplay(); // New method to update UI based on errors
-        });
 
         combinedConsole = new TextArea();
         combinedConsole.setPromptText("LMC Console (Input/Output)");
@@ -164,9 +171,75 @@ public class App extends Application {
 
         ToolBar toolBar = new ToolBar(menuBar, spacer, speedModeToggle, speedSlider, startButton, stopButton,
                 stepButton);
-        root.setTop(toolBar);
 
-        SplitPane horizontalMainSplitPane = new SplitPane(fileExplorer, codeArea);
+        HBox searchBar = new HBox(5);
+        searchBar.setPadding(new Insets(5));
+        searchField = new TextField();
+        searchField.setPromptText("Search");
+        findButton = new Button("Find");
+        findButton.setOnAction(e -> {
+            String query = searchField.getText();
+            if (query != null && !query.isEmpty()) {
+                CodeArea codeArea = getCurrentCodeArea();
+                if (codeArea != null) {
+                    String text = codeArea.getText();
+                    int index = text.indexOf(query, codeArea.getCaretPosition());
+                    if (index == -1) {
+                        index = text.indexOf(query);
+                    }
+                    if (index != -1) {
+                        codeArea.selectRange(index, index + query.length());
+                    } else {
+                        showAlert("Info", "No more occurrences found.");
+                    }
+                }
+            }
+        });
+        replaceField = new TextField();
+        replaceField.setPromptText("Replace");
+        replaceButton = new Button("Replace");
+        replaceButton.setOnAction(e -> {
+            String query = searchField.getText();
+            String replacement = replaceField.getText();
+            if (query != null && !query.isEmpty() && replacement != null) {
+                CodeArea codeArea = getCurrentCodeArea();
+                if (codeArea != null) {
+                    if (codeArea.getSelectedText().equals(query)) {
+                        codeArea.replaceSelection(replacement);
+                    } else {
+                        String text = codeArea.getText();
+                        int index = text.indexOf(query, codeArea.getCaretPosition());
+                        if (index == -1) {
+                            index = text.indexOf(query);
+                        }
+                        if (index != -1) {
+                            codeArea.selectRange(index, index + query.length());
+                            codeArea.replaceSelection(replacement);
+                        } else {
+                            showAlert("Info", "No more occurrences found.");
+                        }
+                    }
+                }
+            }
+        });
+        replaceAllButton = new Button("Replace All");
+        replaceAllButton.setOnAction(e -> {
+            String query = searchField.getText();
+            String replacement = replaceField.getText();
+            if (query != null && !query.isEmpty() && replacement != null) {
+                CodeArea codeArea = getCurrentCodeArea();
+                if (codeArea != null) {
+                    String text = codeArea.getText();
+                    text = text.replace(query, replacement);
+                    codeArea.replaceText(text);
+                }
+            }
+        });
+        searchBar.getChildren().addAll(searchField, findButton, replaceField, replaceButton, replaceAllButton);
+        VBox topBox = new VBox(toolBar, searchBar);
+        root.setTop(topBox);
+
+        SplitPane horizontalMainSplitPane = new SplitPane(fileExplorer, codeTabPane);
         horizontalMainSplitPane.setDividerPositions(0.2);
 
         SplitPane verticalMainSplitPane = new SplitPane(horizontalMainSplitPane, bottomTabPane);
@@ -176,6 +249,13 @@ public class App extends Application {
         root.setCenter(verticalMainSplitPane);
         root.setRight(memoryBox);
 
+        HBox statusBar = new HBox(10);
+        statusBar.setPadding(new Insets(5));
+        lineInfoLabel = new Label("Line: 1");
+        columnInfoLabel = new Label("Column: 1");
+        statusBar.getChildren().addAll(lineInfoLabel, columnInfoLabel);
+        root.setBottom(statusBar);
+
         Scene scene = new Scene(root, 1400, 900);
         scene.getStylesheets().add(getClass().getResource("/vscode-style.css").toExternalForm());
         scene.getStylesheets().add(getClass().getResource("/lmc-syntax.css").toExternalForm());
@@ -184,7 +264,8 @@ public class App extends Application {
 
         setupHotkeys(scene);
         setupConsoleInputListener();
-        applyTheme(prefs.get("theme", "dark-mode"));
+        applyTheme("dark-mode");
+        newFile();
     }
 
     private MenuBar createMenuBar(Preferences prefs, int initialFontSize) {
@@ -208,15 +289,40 @@ public class App extends Application {
 
         Menu editMenu = new Menu("Edit");
         MenuItem undoItem = new MenuItem("Undo");
-        undoItem.setOnAction(e -> codeArea.undo());
+        undoItem.setOnAction(e -> {
+            CodeArea codeArea = getCurrentCodeArea();
+            if (codeArea != null) {
+                codeArea.undo();
+            }
+        });
         MenuItem redoItem = new MenuItem("Redo");
-        redoItem.setOnAction(e -> codeArea.redo());
+        redoItem.setOnAction(e -> {
+            CodeArea codeArea = getCurrentCodeArea();
+            if (codeArea != null) {
+                codeArea.redo();
+            }
+        });
         MenuItem cutItem = new MenuItem("Cut");
-        cutItem.setOnAction(e -> codeArea.cut());
+        cutItem.setOnAction(e -> {
+            CodeArea codeArea = getCurrentCodeArea();
+            if (codeArea != null) {
+                codeArea.cut();
+            }
+        });
         MenuItem copyItem = new MenuItem("Copy");
-        copyItem.setOnAction(e -> codeArea.copy());
+        copyItem.setOnAction(e -> {
+            CodeArea codeArea = getCurrentCodeArea();
+            if (codeArea != null) {
+                codeArea.copy();
+            }
+        });
         MenuItem pasteItem = new MenuItem("Paste");
-        pasteItem.setOnAction(e -> codeArea.paste());
+        pasteItem.setOnAction(e -> {
+            CodeArea codeArea = getCurrentCodeArea();
+            if (codeArea != null) {
+                codeArea.paste();
+            }
+        });
         MenuItem formatCodeItem = new MenuItem("Format Code");
         formatCodeItem.setOnAction(e -> formatCode());
         editMenu.getItems().addAll(undoItem, redoItem, new SeparatorMenuItem(), cutItem, copyItem, pasteItem,
@@ -258,8 +364,6 @@ public class App extends Application {
         featuresMenu.getItems().addAll(autocorrectToggle, autoFormattingToggle, errorHighlightingToggle);
 
         Menu viewMenu = new Menu("View");
-        MenuItem lightModeItem = new MenuItem("Light Mode");
-        lightModeItem.setOnAction(e -> applyTheme("light-mode"));
         MenuItem darkModeItem = new MenuItem("Dark Mode");
         darkModeItem.setOnAction(e -> applyTheme("dark-mode"));
         MenuItem highContrastModeItem = new MenuItem("High Contrast Mode");
@@ -275,7 +379,7 @@ public class App extends Application {
         });
         CustomMenuItem fontSizeMenuItem = new CustomMenuItem(fontSizeSelector);
         fontSizeMenuItem.setHideOnClick(false);
-        viewMenu.getItems().addAll(lightModeItem, darkModeItem, highContrastModeItem, new SeparatorMenuItem(),
+        viewMenu.getItems().addAll(darkModeItem, highContrastModeItem, new SeparatorMenuItem(),
                 fontSizeMenuItem);
 
         Menu helpMenu = new Menu("Help");
@@ -285,6 +389,34 @@ public class App extends Application {
 
         menuBar.getMenus().addAll(fileMenu, editMenu, featuresMenu, viewMenu, helpMenu);
         return menuBar;
+    }
+
+    private CodeArea createCodeArea() {
+        CodeArea codeArea = new CodeArea();
+        codeArea.setParagraphGraphicFactory(LineNumberFactory.get(codeArea));
+        codeArea.getStyleClass().add("code-area");
+
+        codeArea.caretPositionProperty().addListener((obs, oldPosition, newPosition) -> {
+            int line = codeArea.getCurrentParagraph();
+            int column = codeArea.getCaretColumn();
+            lineInfoLabel.setText("Line: " + (line + 1));
+            columnInfoLabel.setText("Column: " + (column + 1));
+        });
+
+        codeArea.textProperty().addListener((obs, oldText, newText) -> {
+            codeArea.setStyleSpans(0, LMCSyntaxHighlighter.computeHighlighting(newText));
+            syntaxErrors.clear(); // Clear previous errors
+            try {
+                LMCParser.AssembledCode assembled = parser.parse(newText);
+                updateMemoryVisualizer(assembled.memoryMap, -1, assembled);
+            } catch (LMCParser.LMCParseException e) {
+                syntaxErrors.put(e.getLineNumber(), e.getMessage());
+                updateMemoryVisualizer(new int[100], -1, null); // Clear memory visualizer on parse error
+            }
+            updateErrorDisplay(); // New method to update UI based on errors
+        });
+
+        return codeArea;
     }
 
     private void showLmcOpcodes() {
@@ -376,11 +508,11 @@ public class App extends Application {
         highlightCurrentInstruction(-1);
         errorListView.getItems().clear(); // Clear errors on run
 
-        String lmcCode = codeArea.getText();
+        String lmcCode = getCurrentCodeArea().getText();
         if (autocorrectEnabled) {
             String correctedCode = ideFeatures.autocorrectCode(lmcCode);
             if (!lmcCode.equals(correctedCode)) {
-                codeArea.replaceText(correctedCode);
+                getCurrentCodeArea().replaceText(correctedCode);
                 lmcCode = correctedCode;
             }
         }
@@ -465,17 +597,17 @@ public class App extends Application {
 
         switch (finalState) {
             case HALTED:
-                combinedConsole.appendText("\n--- Program Halted ---\n" + interpreter.getOutput());
+                combinedConsole.appendText("\n--- Program Halted ---\" + interpreter.getOutput());
                 break;
             case STOPPED:
                 combinedConsole.appendText("\n--- Program Stopped by User ---");
                 break;
             case ERROR:
-                combinedConsole.appendText("\n--- Runtime Error ---\n" + message);
+                combinedConsole.appendText("\n--- Runtime Error ---\" + message);
                 break;
             case AWAITING_INPUT:
             case BREAKPOINT_HIT:
-                combinedConsole.appendText("\n--- Program Paused ---\n" + message);
+                combinedConsole.appendText("\n--- Program Paused ---\" + message);
                 stepButton.setDisable(false); // Enable step button when paused
                 break;
         }
@@ -483,40 +615,46 @@ public class App extends Application {
 
     private void highlightCurrentInstruction(int pc) {
         Platform.runLater(() -> {
-            if (lastHighlightedLine != -1) {
-                codeArea.setParagraphStyle(lastHighlightedLine, Collections.emptyList());
-            }
-            if (currentAssembledCode != null && currentAssembledCode.addressToLineMap.containsKey(pc)) {
-                int line = currentAssembledCode.addressToLineMap.get(pc);
-                if (line < codeArea.getParagraphs().size()) {
-                    codeArea.setParagraphStyle(line, Collections.singleton("current-line"));
-                    lastHighlightedLine = line;
+            CodeArea codeArea = getCurrentCodeArea();
+            if (codeArea != null) {
+                if (lastHighlightedLine != -1) {
+                    codeArea.setParagraphStyle(lastHighlightedLine, Collections.emptyList());
                 }
-            } else {
-                lastHighlightedLine = -1;
+                if (currentAssembledCode != null && currentAssembledCode.addressToLineMap.containsKey(pc)) {
+                    int line = currentAssembledCode.addressToLineMap.get(pc);
+                    if (line < codeArea.getParagraphs().size()) {
+                        codeArea.setParagraphStyle(line, Collections.singleton("current-line"));
+                        lastHighlightedLine = line;
+                    }
+                } else {
+                    lastHighlightedLine = -1;
+                }
             }
         });
     }
 
     private void updateErrorDisplay() {
-        // This will trigger a re-rendering of the paragraph graphics
-        codeArea.setParagraphGraphicFactory(createGutterGraphicFactory());
+        CodeArea codeArea = getCurrentCodeArea();
+        if (codeArea != null) {
+            // This will trigger a re-rendering of the paragraph graphics
+            codeArea.setParagraphGraphicFactory(createGutterGraphicFactory());
 
-        errorListView.getItems().clear();
-        if (!syntaxErrors.isEmpty()) {
-            for (Map.Entry<Integer, String> entry : syntaxErrors.entrySet()) {
-                int lineNumber = entry.getKey();
-                String errorMessage = entry.getValue();
-                String lineContent = "";
-                if (lineNumber > 0 && lineNumber <= codeArea.getParagraphs().size()) {
-                    lineContent = codeArea.getParagraph(lineNumber - 1).getText().trim();
+            errorListView.getItems().clear();
+            if (!syntaxErrors.isEmpty()) {
+                for (Map.Entry<Integer, String> entry : syntaxErrors.entrySet()) {
+                    int lineNumber = entry.getKey();
+                    String errorMessage = entry.getValue();
+                    String lineContent = "";
+                    if (lineNumber > 0 && lineNumber <= codeArea.getParagraphs().size()) {
+                        lineContent = codeArea.getParagraph(lineNumber - 1).getText().trim();
+                    }
+                    errorListView.getItems()
+                            .add(String.format("Line %d: %s\n  -> %s", lineNumber, errorMessage, lineContent));
                 }
-                errorListView.getItems()
-                        .add(String.format("Line %d: %s\n  -> %s", lineNumber, errorMessage, lineContent));
+                bottomTabPane.getSelectionModel().select(1); // Select the Errors tab
+            } else {
+                bottomTabPane.getSelectionModel().select(0); // Select the Console tab if no errors
             }
-            bottomTabPane.getSelectionModel().select(1); // Select the Errors tab
-        } else {
-            bottomTabPane.getSelectionModel().select(0); // Select the Console tab if no errors
         }
     }
 
@@ -682,20 +820,35 @@ public class App extends Application {
             for (File file : files) {
                 if (!file.getName().startsWith(".")) {
                     TreeItem<File> item = new TreeItem<>(file);
-                    parentItem.getChildren().add(item);
                     if (file.isDirectory()) {
+                        item.setGraphic(new ImageView(folderIcon));
                         populateTreeView(file, item);
+                    } else {
+                        item.setGraphic(new ImageView(fileIcon));
                     }
+                    parentItem.getChildren().add(item);
                 }
             }
         }
     }
 
     private void openFile(File file) {
+        for (Tab tab : codeTabPane.getTabs()) {
+            if (file.equals(tab.getUserData())) {
+                codeTabPane.getSelectionModel().select(tab);
+                return;
+            }
+        }
+
         try {
             String content = Files.readString(file.toPath());
+            Tab tab = new Tab(file.getName());
+            tab.setUserData(file);
+            CodeArea codeArea = createCodeArea();
             codeArea.replaceText(content);
-            currentOpenFile = file;
+            tab.setContent(codeArea);
+            codeTabPane.getTabs().add(tab);
+            codeTabPane.getSelectionModel().select(tab);
             updateTitle();
         } catch (IOException e) {
             showAlert("Error", "Could not read file: " + e.getMessage());
@@ -703,8 +856,10 @@ public class App extends Application {
     }
 
     private void newFile() {
-        codeArea.clear();
-        currentOpenFile = null;
+        Tab tab = new Tab("New File");
+        tab.setContent(createCodeArea());
+        codeTabPane.getTabs().add(tab);
+        codeTabPane.getSelectionModel().select(tab);
         updateTitle();
     }
 
@@ -713,8 +868,9 @@ public class App extends Application {
         if (currentProjectDirectory != null) {
             title += " - " + currentProjectDirectory.getName();
         }
-        if (currentOpenFile != null) {
-            title += " - " + currentOpenFile.getName();
+        Tab selectedTab = codeTabPane.getSelectionModel().getSelectedItem();
+        if (selectedTab != null) {
+            title += " - " + selectedTab.getText();
         } else if (currentProjectDirectory == null) {
             title += " - New File";
         }
@@ -755,38 +911,46 @@ public class App extends Application {
     }
 
     private void saveFile() {
-        if (currentOpenFile != null) {
-            try {
-                Files.writeString(currentOpenFile.toPath(), codeArea.getText(), StandardOpenOption.CREATE,
-                        StandardOpenOption.TRUNCATE_EXISTING);
-                showAlert("Success", "File saved successfully!");
-            } catch (IOException e) {
-                showAlert("Error", "Could not save file: " + e.getMessage());
+        Tab selectedTab = codeTabPane.getSelectionModel().getSelectedItem();
+        if (selectedTab != null) {
+            File file = (File) selectedTab.getUserData();
+            if (file != null) {
+                try {
+                    Files.writeString(file.toPath(), getCurrentCodeArea().getText(), StandardOpenOption.CREATE,
+                            StandardOpenOption.TRUNCATE_EXISTING);
+                    showAlert("Success", "File saved successfully!");
+                } catch (IOException e) {
+                    showAlert("Error", "Could not save file: " + e.getMessage());
+                }
+            } else {
+                saveFileAs();
             }
-        } else {
-            saveFileAs();
         }
     }
 
     private void saveFileAs() {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Save File As");
-        if (currentProjectDirectory != null) {
-            fileChooser.setInitialDirectory(currentProjectDirectory);
-        }
-        File file = fileChooser.showSaveDialog(primaryStage);
-        if (file != null) {
-            try {
-                Files.writeString(file.toPath(), codeArea.getText(), StandardOpenOption.CREATE,
-                        StandardOpenOption.TRUNCATE_EXISTING);
-                currentOpenFile = file;
-                updateTitle();
-                showAlert("Success", "File saved successfully!");
-                if (currentProjectDirectory != null && file.getParentFile().equals(currentProjectDirectory)) {
-                    refreshFileExplorer();
+        Tab selectedTab = codeTabPane.getSelectionModel().getSelectedItem();
+        if (selectedTab != null) {
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Save File As");
+            if (currentProjectDirectory != null) {
+                fileChooser.setInitialDirectory(currentProjectDirectory);
+            }
+            File file = fileChooser.showSaveDialog(primaryStage);
+            if (file != null) {
+                try {
+                    Files.writeString(file.toPath(), getCurrentCodeArea().getText(), StandardOpenOption.CREATE,
+                            StandardOpenOption.TRUNCATE_EXISTING);
+                    selectedTab.setText(file.getName());
+                    selectedTab.setUserData(file);
+                    updateTitle();
+                    showAlert("Success", "File saved successfully!");
+                    if (currentProjectDirectory != null && file.getParentFile().equals(currentProjectDirectory)) {
+                        refreshFileExplorer();
+                    }
+                } catch (IOException e) {
+                    showAlert("Error", "Could not save file: " + e.getMessage());
                 }
-            } catch (IOException e) {
-                showAlert("Error", "Could not save file: " + e.getMessage());
             }
         }
     }
@@ -801,8 +965,24 @@ public class App extends Application {
 
     private void setupHotkeys(Scene scene) {
         scene.getAccelerators().put(new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN), this::saveFile);
-        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.Z, KeyCombination.CONTROL_DOWN), codeArea::undo);
-        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.Y, KeyCombination.CONTROL_DOWN), codeArea::redo);
+        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.W, KeyCombination.CONTROL_DOWN), () -> {
+            Tab selectedTab = codeTabPane.getSelectionModel().getSelectedItem();
+            if (selectedTab != null) {
+                codeTabPane.getTabs().remove(selectedTab);
+            }
+        });
+        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.Z, KeyCombination.CONTROL_DOWN), () -> {
+            CodeArea codeArea = getCurrentCodeArea();
+            if (codeArea != null) {
+                codeArea.undo();
+            }
+        });
+        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.Y, KeyCombination.CONTROL_DOWN), () -> {
+            CodeArea codeArea = getCurrentCodeArea();
+            if (codeArea != null) {
+                codeArea.redo();
+            }
+        });
         scene.getAccelerators().put(new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN), this::newFile);
         scene.getAccelerators().put(
                 new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN),
@@ -812,16 +992,16 @@ public class App extends Application {
 
     private void applyTheme(String theme) {
         Preferences prefs = Preferences.userNodeForPackage(App.class);
-        root.getStyleClass().removeAll("light-mode", "dark-mode", "high-contrast");
+        root.getStyleClass().removeAll("dark-mode", "high-contrast");
         root.getStyleClass().add(theme);
         prefs.put("theme", theme);
     }
 
     private void formatCode() {
         if (autoFormattingEnabled) {
-            String currentCode = codeArea.getText();
+            String currentCode = getCurrentCodeArea().getText();
             String formattedCode = LMCFormatter.format(currentCode);
-            codeArea.replaceText(formattedCode);
+            getCurrentCodeArea().replaceText(formattedCode);
         } else {
             showAlert("Info", "Auto-formatting is disabled. Enable it in Features menu.");
         }
@@ -831,7 +1011,7 @@ public class App extends Application {
         combinedConsole.setOnKeyPressed(event -> {
             if (pendingInputRequest != null && event.getCode() == KeyCode.ENTER) {
                 String text = combinedConsole.getText();
-                String[] lines = text.split("\\n");
+                String[] lines = text.split("\n");
                 if (lines.length == 0)
                     return;
 
@@ -871,5 +1051,17 @@ public class App extends Application {
 
     public static void main(String[] args) {
         launch(args);
+    }
+
+    public CodeArea getCurrentCodeArea() {
+        Tab selectedTab = codeTabPane.getSelectionModel().getSelectedItem();
+        if (selectedTab != null) {
+            return (CodeArea) selectedTab.getContent();
+        }
+        return null;
+    }
+
+    public TabPane getCodeTabPane() {
+        return codeTabPane;
     }
 }

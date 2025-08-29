@@ -50,20 +50,20 @@
    Theme: Dark Mode
 ─────────────────────────────────────────────── */
 .dark-mode {
-    --bg-dark: hsl(219 81% 2%);
-    --bg: hsl(213 56% 5%);
-    --bg-light: hsl(211 34% 9%);
-    --text: hsl(212 100% 96%);
-    --text-muted: hsl(212 29% 71%);
-    --highlight: hsl(211 19% 40%);
-    --border: hsl(211 25% 29%);
-    --border-muted: hsl(211 37% 19%);
-    --primary: hsl(211 77% 72%);
-    --secondary: hsl(33 60% 63%);
-    --danger: hsl(9 26% 64%);
-    --warning: hsl(52 19% 57%);
-    --success: hsl(146 17% 59%);
-    --info: hsl(217 28% 65%);
+    --bg-dark: rgb(1, 4, 9);
+    --bg: rgb(6, 11, 19);
+    --bg-light: rgb(15, 22, 30);
+    --text: rgb(242, 245, 247);
+    --text-muted: rgb(168, 180, 194);
+    --highlight: rgb(82, 95, 110);
+    --border: rgb(55, 69, 87);
+    --border-muted: rgb(30, 44, 61);
+    --primary: rgb(143, 182, 224);
+    --secondary: rgb(214, 175, 107);
+    --danger: rgb(180, 154, 147);
+    --warning: rgb(159, 156, 131);
+    --success: rgb(135, 165, 146);
+    --info: rgb(151, 164, 183);
 
     -fx-background-color: var(--bg);
     --text-color: var(--text);
@@ -113,104 +113,6 @@
     -fx-background-color: derive(var(--accent-color), -20%);
 }
 
-/* ─────────────────────────────────────────────
-   Theme: Light Mode
-─────────────────────────────────────────────── */
-.light-mode {
-    --bg-dark: hsl(219 81% 98%);
-    --bg: hsl(213 56% 95%);
-    --bg-light: hsl(211 34% 91%);
-    --text: hsl(212 100% 4%);
-    --text-muted: hsl(212 29% 29%);
-    --highlight: hsl(211 19% 60%);
-    --border: hsl(211 25% 71%);
-    --border-muted: hsl(211 37% 81%);
-    --primary: hsl(211 77% 28%);
-    --secondary: hsl(33 60% 37%);
-    --danger: hsl(9 26% 36%);
-    --warning: hsl(52 19% 43%);
-    --success: hsl(146 17% 41%);
-    --info: hsl(217 28% 35%);
-
-    -fx-background-color: var(--bg);
-    --text-color: var(--text);
-    --background-color: var(--bg);
-    --sidebar-color: var(--bg-light);
-    --console-color: var(--bg-light);
-    --navbar-color: var(--bg-dark);
-    --selection-color: var(--highlight);
-    --border-color: var(--border);
-}
-
-.light-mode .code-area {
-    -fx-background-color: var(--background-color);
-    -fx-fill: var(--text-color);
-    -fx-font-family: "Consolas", "Monaco", "Courier New", monospace;
-    -fx-font-size: var(--base-font-size);
-}
-
-.light-mode .console-area {
-    -fx-background-color: var(--console-color);
-    -fx-text-fill: var(--text-color);
-    -fx-font-size: var(--base-font-size);
-}
-
-.light-mode .menu-bar,
-.light-mode .context-menu {
-    -fx-background-color: var(--navbar-color);
-}
-
-.light-mode .menu-item {
-    -fx-text-fill: var(--text-color);
-    -fx-background-color: var(--navbar-color);
-}
-
-.light-mode .menu-item:focused {
-    -fx-background-color: var(--accent-color);
-}
-
-.light-mode .button {
-    -fx-background-color: var(--accent-color);
-    -fx-text-fill: white;
-    -fx-font-weight: bold;
-    -fx-padding: 5px 10px;
-}
-
-.light-mode .button:hover {
-    -fx-background-color: derive(var(--accent-color), -20%);
-}
-
-/* ─────────────────────────────────────────────
-   Accessibility: High Contrast Mode
-─────────────────────────────────────────────── */
-.high-contrast {
-    -fx-background-color: black;
-    --text-color: yellow;
-    --accent-color: cyan;
-}
-
-.high-contrast .code-area {
-    -fx-background-color: black;
-    -fx-fill: yellow;
-    -fx-font-weight: bold;
-    -fx-font-size: var(--base-font-size);
-}
-
-.high-contrast .button {
-    -fx-background-color: cyan;
-    -fx-text-fill: black;
-    -fx-font-weight: bold;
-    -fx-padding: 8px 12px;
-    /* Increased padding */
-}
-
-.high-contrast .menu-item {
-    -fx-text-fill: yellow;
-    -fx-background-color: black;
-    -fx-padding: 5px 10px;
-    /* Increased padding */
-}
-
 .menu-check-mark {
     -fx-text-fill: var(--success);
 }
@@ -240,19 +142,6 @@
 .memory-instruction-text {
     -fx-font-family: "Consolas", "Monaco", monospace;
     -fx-font-size: 10px;
-    -fx-text-fill: var(--text-muted);
-}
-
-.light-mode .memory-cell {
-    -fx-background-color: var(--bg-light);
-    -fx-border-color: var(--border-muted);
-}
-
-.light-mode .memory-digit {
-    -fx-text-fill: var(--text);
-}
-
-.light-mode .memory-instruction-text {
     -fx-text-fill: var(--text-muted);
 }
 
@@ -299,4 +188,110 @@
 .breakpoint-area {
     /* This class is primarily for click detection and maintaining layout */
     -fx-cursor: hand;
+}
+
+
+.register-view {
+    -fx-padding: 10;
+    -fx-spacing: 5;
+    -fx-background-color: var(--bg-light);
+    -fx-border-color: var(--border);
+    -fx-border-width: 1;
+}
+
+.register-label {
+    -fx-font-weight: bold;
+    -fx-text-fill: var(--text);
+}
+
+.register-value {
+    -fx-font-family: "Consolas", "Monaco", monospace;
+    -fx-font-size: 14px;
+    -fx-text-fill: var(--primary);
+}
+
+.output-area {
+    -fx-font-family: "Consolas", "Monaco", monospace;
+    -fx-font-size: 12px;
+    -fx-background-color: var(--bg-dark);
+    -fx-text-fill: var(--text);
+    -fx-padding: 5;
+}
+
+.input-prompt {
+    -fx-background-color: var(--bg);
+    -fx-border-color: var(--primary);
+    -fx-border-width: 1;
+    -fx-padding: 5;
+}
+
+.input-prompt .label {
+    -fx-text-fill: var(--text);
+    -fx-font-weight: bold;
+}
+
+.input-prompt .text-field {
+    -fx-background-color: var(--bg-light);
+    -fx-text-fill: var(--text);
+    -fx-border-color: var(--border);
+    -fx-border-width: 1;
+}
+
+.status-bar {
+    -fx-background-color: var(--primary);
+    -fx-padding: 3 5;
+}
+
+.status-bar-label {
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+}
+
+.tab-pane .tab-header-area .tab-header-background {
+    -fx-background-color: var(--bg-dark);
+}
+
+.tab-pane .tab {
+    -fx-background-color: var(--bg-light);
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.tab-pane .tab:selected {
+    -fx-background-color: var(--bg);
+}
+
+.tab-pane .tab .tab-label {
+    -fx-text-fill: var(--text-muted);
+}
+
+.tab-pane .tab:selected .tab-label {
+    -fx-text-fill: var(--text);
+}
+
+.virtual-flow .corner {
+    -fx-background-color: var(--bg-light);
+}
+
+.scroll-bar:vertical,
+.scroll-bar:horizontal {
+    -fx-background-color: var(--bg-light);
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: var(--highlight);
+    -fx-background-insets: 2;
+    -fx-background-radius: 4;
+}
+
+.scroll-bar .increment-button,
+.scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0 0 10 0;
+}
+
+.scroll-bar .increment-arrow,
+.scroll-bar .decrement-arrow {
+    -fx-shape: " ";
+    -fx-padding: 0;
 }
