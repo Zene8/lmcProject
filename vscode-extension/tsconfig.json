@@ -13,7 +13,8 @@
     "forceConsistentCasingInFileNames": true
   },
   "include": [
-    "src"
+    "src",
+    "src/**/*.svelte"
   ],
   "exclude": [
     "node_modules",

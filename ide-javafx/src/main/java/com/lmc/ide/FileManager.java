@@ -2,17 +2,16 @@ package com.lmc.ide;
 
 import javafx.scene.control.Alert;
 import javafx.scene.control.Tab;
-import javafx.scene.control.TreeItem;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import org.fxmisc.richtext.CodeArea;
+import org.fxmisc.richtext.LineNumberFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
-import java.util.Arrays;
 import java.util.regex.Pattern;
 
 public class FileManager {
@@ -32,7 +31,7 @@ public class FileManager {
         do {
             nameExists = false;
             tabName = "Untitled-" + newFileCount;
-            for (Tab t : uiController.getCodeTabPane().getTabs()) {
+            for (Tab t : uiController.getEditorTabPane().getTabs()) {
                 if (t.getText().equals(tabName)) {
                     newFileCount++;
                     nameExists = true;
@@ -41,37 +40,31 @@ public class FileManager {
             }
         } while (nameExists);
 
-        Tab tab = new Tab(tabName);
-        tab.setContent(uiController.createCodeArea());
-        uiController.getCodeTabPane().getTabs().add(tab);
-        uiController.getCodeTabPane().getSelectionModel().select(tab);
-        updateTitle();
+        CodeArea codeArea = new CodeArea();
+        codeArea.setParagraphGraphicFactory(LineNumberFactory.get(codeArea));
+        uiController.newEditorTab(tabName, codeArea);
     }
 
     public void openFile(File file) {
-        for (Tab tab : uiController.getCodeTabPane().getTabs()) {
+        for (Tab tab : uiController.getEditorTabPane().getTabs()) {
             if (file.equals(tab.getUserData())) {
-                uiController.getCodeTabPane().getSelectionModel().select(tab);
+                uiController.getEditorTabPane().getSelectionModel().select(tab);
                 return;
             }
         }
         try {
             String content = Files.readString(file.toPath());
-            Tab tab = new Tab(file.getName());
-            tab.setUserData(file);
-            CodeArea codeArea = uiController.createCodeArea();
+            CodeArea codeArea = new CodeArea();
+            codeArea.setParagraphGraphicFactory(LineNumberFactory.get(codeArea));
             codeArea.replaceText(content);
-            tab.setContent(codeArea);
-            uiController.getCodeTabPane().getTabs().add(tab);
-            uiController.getCodeTabPane().getSelectionModel().select(tab);
-            updateTitle();
+            uiController.newEditorTab(file.getName(), codeArea);
         } catch (IOException e) {
             showAlert("Error", "Could not read file: " + e.getMessage());
         }
     }
 
     public void saveFile() {
-        Tab selectedTab = uiController.getCodeTabPane().getSelectionModel().getSelectedItem();
+        Tab selectedTab = uiController.getEditorTabPane().getSelectionModel().getSelectedItem();
         if (selectedTab != null) {
             File file = (File) selectedTab.getUserData();
             CodeArea codeArea = uiController.getCurrentCodeArea();
@@ -89,7 +82,7 @@ public class FileManager {
     }
 
     public void saveFileAs() {
-        Tab selectedTab = uiController.getCodeTabPane().getSelectionModel().getSelectedItem();
+        Tab selectedTab = uiController.getEditorTabPane().getSelectionModel().getSelectedItem();
         CodeArea codeArea = uiController.getCurrentCodeArea();
         if (selectedTab != null && codeArea != null) {
             FileChooser fileChooser = new FileChooser();
@@ -103,7 +96,6 @@ public class FileManager {
                             StandardOpenOption.TRUNCATE_EXISTING);
                     selectedTab.setText(file.getName());
                     selectedTab.setUserData(file);
-                    updateTitle();
                 } catch (IOException e) {
                     showAlert("Error", "Could not save file: " + e.getMessage());
                 }
@@ -120,61 +112,15 @@ public class FileManager {
         File dir = directoryChooser.showDialog(primaryStage);
         if (dir != null) {
             currentProjectDirectory = dir;
-            refreshFileExplorer();
-            updateTitle();
-        }
-    }
-
-    private void refreshFileExplorer() {
-        if (currentProjectDirectory != null) {
-            TreeItem<File> rootItem = new TreeItem<>(currentProjectDirectory, uiController.createFolderIcon());
-            rootItem.setExpanded(true);
-            uiController.getFileExplorer().setRoot(rootItem);
-            populateTreeView(currentProjectDirectory, rootItem);
-        }
-    }
-
-    private void populateTreeView(File directory, TreeItem<File> parentItem) {
-        File[] files = directory.listFiles();
-        if (files != null) {
-            Arrays.sort(files, (f1, f2) -> {
-                if (f1.isDirectory() && !f2.isDirectory())
-                    return -1;
-                if (!f1.isDirectory() && f2.isDirectory())
-                    return 1;
-                return f1.getName().compareToIgnoreCase(f2.getName());
-            });
-
-            for (File file : files) {
-                if (!file.getName().startsWith(".")) {
-                    TreeItem<File> item = new TreeItem<>(file,
-                            file.isDirectory() ? uiController.createFolderIcon() : uiController.createFileIcon());
-                    if (file.isDirectory()) {
-                        populateTreeView(file, item);
-                    }
-                    parentItem.getChildren().add(item);
-                }
-            }
+            uiController.refreshFileExplorer(currentProjectDirectory);
         }
     }
 
     public void closeCurrentTab() {
-        Tab selectedTab = uiController.getCodeTabPane().getSelectionModel().getSelectedItem();
+        Tab selectedTab = uiController.getEditorTabPane().getSelectionModel().getSelectedItem();
         if (selectedTab != null) {
-            uiController.getCodeTabPane().getTabs().remove(selectedTab);
+            uiController.getEditorTabPane().getTabs().remove(selectedTab);
         }
-    }
-
-    public void updateTitle() {
-        String title = "LMC IDE";
-        if (currentProjectDirectory != null) {
-            title += " - " + currentProjectDirectory.getName();
-        }
-        Tab selectedTab = uiController.getCodeTabPane().getSelectionModel().getSelectedItem();
-        if (selectedTab != null) {
-            title += " (" + selectedTab.getText() + ")";
-        }
-        primaryStage.setTitle(title);
     }
 
     public void findNext(String query) {

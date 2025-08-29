@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LMC Quick Reference</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>LMC Instruction Set Quick Reference</h1>
+
+    <h2>Input/Output</h2>
+    <table>
+        <tr>
+            <th>Instruction</th>
+            <th>Opcode</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td>INP</td>
+            <td>901</td>
+            <td>Reads a number from the input and stores it in the accumulator.</td>
+        </tr>
+        <tr>
+            <td>OUT</td>
+            <td>902</td>
+            <td>Writes the value from the accumulator to the output.</td>
+        </tr>
+    </table>
+
+    <h2>Memory Operations</h2>
+    <table>
+        <tr>
+            <th>Instruction</th>
+            <th>Opcode</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td>LDA</td>
+            <td>5xx</td>
+            <td>Loads the value from the specified memory address into the accumulator.</td>
+        </tr>
+        <tr>
+            <td>STA</td>
+            <td>3xx</td>
+            <td>Stores the value from the accumulator to the specified memory address.</td>
+        </tr>
+    </table>
+
+    <h2>Arithmetic</h2>
+    <table>
+        <tr>
+            <th>Instruction</th>
+            <th>Opcode</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td>ADD</td>
+            <td>1xx</td>
+            <td>Adds the value from the specified memory address to the accumulator.</td>
+        </tr>
+        <tr>
+            <td>SUB</td>
+            <td>2xx</td>
+            <td>Subtracts the value from the specified memory address from the accumulator.</td>
+        </tr>
+    </table>
+
+    <h2>Control Flow</h2>
+    <table>
+        <tr>
+            <th>Instruction</th>
+            <th>Opcode</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td>BRA</td>
+            <td>6xx</td>
+            <td>Branches to the specified memory address unconditionally.</td>
+        </tr>
+        <tr>
+            <td>BRZ</td>
+            <td>7xx</td>
+            <td>Branches to the specified memory address if the accumulator is zero.</td>
+        </tr>
+        <tr>
+            <td>BRP</td>
+            <td>8xx</td>
+            <td>Branches to the specified memory address if the accumulator is positive or zero.</td>
+        </tr>
+        <tr>
+            <td>HLT</td>
+            <td>000</td>
+            <td>Halts the program.</td>
+        </tr>
+    </table>
+
+    <h2>Data</h2>
+    <table>
+        <tr>
+            <th>Instruction</th>
+            <th>Opcode</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td>DAT</td>
+            <td>N/A</td>
+            <td>Reserves a memory location and initializes it with a value.</td>
+        </tr>
+    </table>
+
+</body>
+</html>

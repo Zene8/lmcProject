@@ -1,42 +1,47 @@
 package com.lmc.ide;
 
-import javafx.application.Platform;
 import javafx.geometry.Insets;
-import javafx.geometry.Orientation;
-import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
-import javafx.scene.layout.*;
-import javafx.scene.shape.SVGPath;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import org.fxmisc.richtext.CodeArea;
-import org.fxmisc.richtext.LineNumberFactory;
-import java.util.prefs.Preferences;
+
+import java.io.File;
+import java.util.Arrays;
 
 public class UIController {
 
-    private final Stage primaryStage;
+    private Stage primaryStage;
+    private BorderPane root;
+    private SplitPane mainSplitPane;
+    private TabPane editorTabPane;
+    private VBox toolsSidebar;
+    private TabPane toolsTabPane;
+    private BorderPane memoryView;
+    private TreeView<File> fileExplorer;
+
     private FileManager fileManager;
     private LMCExecutor lmcExecutor;
+    private LMCIDEFeatures ideFeatures;
 
-    private BorderPane root;
-    private TreeView<java.io.File> fileExplorer;
-    private TabPane codeTabPane;
-    private SplitPane mainHorizontalSplit;
+    private Label memoryUsageLabel;
 
-    private VBox findPopup, replacePopup;
-    private TextField findField, replaceFindField, replaceWithField;
-
-    private Label memoryUsedLabel;
-    private double lastExplorerDividerPos = 0.2;
-    private double lastToolsDividerPos = 0.8;
+    private VBox findPopup;
+    private TextField findField;
+    private VBox replacePopup;
+    private TextField replaceFindField;
+    private TextField replaceWithField;
 
     public UIController(Stage primaryStage) {
         this.primaryStage = primaryStage;
-        createInitialUI();
     }
 
-    // --- Dependency Injection ---
     public void setFileManager(FileManager fileManager) {
         this.fileManager = fileManager;
     }
@@ -46,291 +51,140 @@ public class UIController {
     }
 
     public void setIdeFeatures(LMCIDEFeatures ideFeatures) {
-        /* Can be used if needed */ }
+        this.ideFeatures = ideFeatures;
+    }
 
-    // --- Getters for other classes ---
-    public BorderPane getRoot() {
+    public void initComponents() {
+        root = new BorderPane();
+        mainSplitPane = new SplitPane();
+        editorTabPane = new TabPane();
+        toolsSidebar = createToolsSidebar();
+        memoryView = createMemoryView();
+        fileExplorer = new TreeView<>();
+
+        mainSplitPane.getItems().addAll(editorTabPane, toolsSidebar);
+        mainSplitPane.setDividerPositions(0.75);
+
+        root.setCenter(mainSplitPane);
+        root.setBottom(memoryView);
+
+        createFindPopup();
+        createReplacePopup();
+    }
+
+    private VBox createToolsSidebar() {
+        toolsSidebar = new VBox();
+        toolsSidebar.getStyleClass().add("tools-container");
+        toolsTabPane = new TabPane();
+
+        Tab fileExplorerTab = new Tab("File Explorer");
+        fileExplorerTab.setClosable(false);
+        fileExplorerTab.setContent(fileExplorer);
+
+        Tab memoryManagementTab = new Tab("Memory");
+        memoryManagementTab.setClosable(false);
+        // Add memory management components here
+
+        Tab learningToolsTab = new Tab("Learn");
+        learningToolsTab.setClosable(false);
+        // Add learning tools components here
+
+        toolsTabPane.getTabs().addAll(fileExplorerTab, memoryManagementTab, learningToolsTab);
+        toolsSidebar.getChildren().add(toolsTabPane);
+        return toolsSidebar;
+    }
+
+    private BorderPane createMemoryView() {
+        memoryView = new BorderPane();
+        memoryView.getStyleClass().add("editor-container");
+        memoryUsageLabel = new Label("Memory Usage: 0/100");
+        memoryView.setCenter(memoryUsageLabel);
+        return memoryView;
+    }
+
+    private void createFindPopup() {
+        findPopup = new VBox();
+        findPopup.setPadding(new Insets(10));
+        findPopup.setSpacing(5);
+        findField = new TextField();
+        Button findNextButton = new Button("Find Next");
+        findNextButton.setOnAction(e -> fileManager.findNext(findField.getText()));
+        findPopup.getChildren().addAll(new Label("Find:"), findField, findNextButton);
+        findPopup.setVisible(false);
+        root.getChildren().add(findPopup);
+    }
+
+    private void createReplacePopup() {
+        replacePopup = new VBox();
+        replacePopup.setPadding(new Insets(10));
+        replacePopup.setSpacing(5);
+        replaceFindField = new TextField();
+        replaceWithField = new TextField();
+        Button replaceNextButton = new Button("Replace");
+        replaceNextButton.setOnAction(e -> fileManager.replaceNext());
+        Button replaceAllButton = new Button("Replace All");
+        replaceAllButton.setOnAction(e -> fileManager.replaceAll());
+        replacePopup.getChildren().addAll(new Label("Find:"), replaceFindField, new Label("Replace with:"), replaceWithField, new HBox(5, replaceNextButton, replaceAllButton));
+        replacePopup.setVisible(false);
+        root.getChildren().add(replacePopup);
+    }
+
+    public Node getRoot() {
         return root;
     }
 
-    public TabPane getCodeTabPane() {
-        return codeTabPane;
+    public TabPane getEditorTabPane() {
+        return editorTabPane;
     }
 
-    public TreeView<java.io.File> getFileExplorer() {
-        return fileExplorer;
+    public CodeArea getCurrentCodeArea() {
+        Tab selectedTab = editorTabPane.getSelectionModel().getSelectedItem();
+        if (selectedTab != null && selectedTab.getContent() instanceof BorderPane) {
+            Node centerNode = ((BorderPane) selectedTab.getContent()).getCenter();
+            if (centerNode instanceof CodeArea) {
+                return (CodeArea) centerNode;
+            }
+        }
+        return null;
     }
 
     public Label getMemoryUsageLabel() {
-        return memoryUsedLabel;
+        return memoryUsageLabel;
     }
 
-    /**
-     * Creates the basic layout and structure. Called from the constructor.
-     */
-    private void createInitialUI() {
-        root = new BorderPane();
-        int initialFontSize = Preferences.userNodeForPackage(App.class).getInt("fontSize", 14);
-        root.setStyle("-fx-font-size: " + initialFontSize + "px;");
-    }
-
-    /**
-     * Populates the UI with components that require dependencies.
-     * Must be called AFTER dependencies are injected.
-     */
-    public void initComponents() {
-        MenuBar menuBar = createMenuBar(Preferences.userNodeForPackage(App.class));
-        ToolBar toolBar = createToolBar();
-        HBox topContainer = new HBox(menuBar, new HBox(), toolBar);
-        HBox.setHgrow(topContainer.getChildren().get(1), Priority.ALWAYS);
-        topContainer.getStyleClass().add("top-container");
-        root.setTop(topContainer);
-
-        createMainPanels();
-    }
-
-    private void createMainPanels() {
-        fileExplorer = new TreeView<>();
-        fileExplorer.getStyleClass().add("tree-view");
-        fileExplorer.getSelectionModel().selectedItemProperty().addListener((obs, ov, nv) -> {
-            if (nv != null && nv.getValue().isFile())
-                fileManager.openFile(nv.getValue());
-        });
-
-        VBox toolsPanel = createToolsPanel();
-
-        codeTabPane = new TabPane();
-        codeTabPane.getStyleClass().add("code-tab-pane");
-
-        findPopup = createFindPopup();
-        replacePopup = createReplacePopup();
-        StackPane codeAreaStack = new StackPane(codeTabPane, findPopup, replacePopup);
-        StackPane.setAlignment(findPopup, Pos.TOP_RIGHT);
-        StackPane.setAlignment(replacePopup, Pos.TOP_RIGHT);
-        StackPane.setMargin(findPopup, new Insets(10));
-        StackPane.setMargin(replacePopup, new Insets(10));
-
-        TabPane bottomTabPane = createBottomPane();
-
-        mainHorizontalSplit = new SplitPane(fileExplorer, codeAreaStack, toolsPanel);
-        mainHorizontalSplit.setDividerPositions(lastExplorerDividerPos, lastToolsDividerPos);
-
-        SplitPane verticalSplit = new SplitPane(mainHorizontalSplit, bottomTabPane);
-        verticalSplit.setOrientation(Orientation.VERTICAL);
-        verticalSplit.setDividerPositions(0.75);
-        root.setCenter(verticalSplit);
-    }
-
-    private VBox createToolsPanel() {
-        GridPane memoryVisualizer = lmcExecutor.createMemoryVisualizer();
-        memoryUsedLabel = new Label("Memory Used: 0 / 100");
-        VBox panel = new VBox(10, new Label("Tools"), memoryVisualizer, memoryUsedLabel);
-        panel.setPadding(new Insets(10));
-        panel.getStyleClass().add("tools-panel");
-        panel.setMinWidth(350);
-        return panel;
-    }
-
-    private TabPane createBottomPane() {
-        TextArea combinedConsole = new TextArea();
-        combinedConsole.setPromptText("LMC Console (Input/Output)");
-        combinedConsole.getStyleClass().add("console-area");
-        combinedConsole.setEditable(false);
-        lmcExecutor.setConsole(combinedConsole);
-
-        ListView<String> errorListView = new ListView<>();
-        errorListView.getStyleClass().add("error-list-view");
-
-        Tab consoleTab = new Tab("Console", combinedConsole);
-        consoleTab.setClosable(false);
-        Tab errorsTab = new Tab("Errors", errorListView);
-        errorsTab.setClosable(false);
-
-        TabPane pane = new TabPane(consoleTab, errorsTab);
-        lmcExecutor.setErrorListView(errorListView, pane);
-        return pane;
-    }
-
-    private MenuBar createMenuBar(Preferences prefs) {
-        MenuBar menuBar = new MenuBar();
-        menuBar.getStyleClass().add("menu-bar");
-
-        Menu fileMenu = new Menu("_File");
-        MenuItem newFileItem = new MenuItem("_New File");
-        newFileItem.setOnAction(e -> fileManager.newFile());
-        MenuItem openProjectItem = new MenuItem("_Open Project...");
-        openProjectItem.setOnAction(e -> fileManager.openProject());
-        MenuItem saveItem = new MenuItem("_Save");
-        saveItem.setOnAction(e -> fileManager.saveFile());
-        MenuItem saveAsItem = new MenuItem("Save _As...");
-        saveAsItem.setOnAction(e -> fileManager.saveFileAs());
-        MenuItem exitItem = new MenuItem("E_xit");
-        exitItem.setOnAction(e -> Platform.exit());
-        fileMenu.getItems().addAll(newFileItem, openProjectItem, new SeparatorMenuItem(), saveItem, saveAsItem,
-                new SeparatorMenuItem(), exitItem);
-
-        Menu editMenu = new Menu("_Edit");
-        MenuItem undoItem = new MenuItem("_Undo");
-        undoItem.setOnAction(e -> {
-            if (getCurrentCodeArea() != null)
-                getCurrentCodeArea().undo();
-        });
-        MenuItem redoItem = new MenuItem("_Redo");
-        redoItem.setOnAction(e -> {
-            if (getCurrentCodeArea() != null)
-                getCurrentCodeArea().redo();
-        });
-        MenuItem findItem = new MenuItem("_Find...");
-        findItem.setOnAction(e -> toggleFindPopup());
-        MenuItem replaceItem = new MenuItem("R_eplace...");
-        replaceItem.setOnAction(e -> toggleReplacePopup());
-        editMenu.getItems().addAll(undoItem, redoItem, new SeparatorMenuItem(), findItem, replaceItem);
-
-        Menu viewMenu = new Menu("_View");
-        Menu themeMenu = new Menu("_Theme");
-        ToggleGroup themeGroup = new ToggleGroup();
-        RadioMenuItem lightThemeItem = new RadioMenuItem("_Light");
-        lightThemeItem.setToggleGroup(themeGroup);
-        lightThemeItem.setSelected("light-mode".equals(prefs.get("theme", "dark-mode")));
-        lightThemeItem.setOnAction(e -> applyTheme("light-mode"));
-        RadioMenuItem darkThemeItem = new RadioMenuItem("_Dark");
-        darkThemeItem.setToggleGroup(themeGroup);
-        darkThemeItem.setSelected("dark-mode".equals(prefs.get("theme", "dark-mode")));
-        darkThemeItem.setOnAction(e -> applyTheme("dark-mode"));
-        themeMenu.getItems().addAll(lightThemeItem, darkThemeItem);
-        viewMenu.getItems().add(themeMenu);
-
-        Menu runMenu = new Menu("_Run");
-        MenuItem runItem = new MenuItem("_Run Program");
-        runItem.setOnAction(e -> lmcExecutor.runLMC());
-        MenuItem stopItem = new MenuItem("_Stop Program");
-        stopItem.setOnAction(e -> lmcExecutor.stopLMC());
-        runMenu.getItems().addAll(runItem, stopItem);
-
-        menuBar.getMenus().addAll(fileMenu, editMenu, viewMenu, runMenu);
-        return menuBar;
-    }
-
-    private ToolBar createToolBar() {
-        Button startButton = new Button("▶");
-        startButton.getStyleClass().add("start-button");
-        Button stopButton = new Button("■");
-        stopButton.getStyleClass().add("stop-button");
-        Button stepButton = new Button("↦");
-
-        lmcExecutor.setControls(startButton, stopButton, stepButton);
-        startButton.setOnAction(e -> lmcExecutor.runLMC());
-        stopButton.setOnAction(e -> lmcExecutor.stopLMC());
-        stepButton.setOnAction(e -> lmcExecutor.executeStep());
-
-        ToggleButton speedModeToggle = new ToggleButton("Fast");
-        Slider speedSlider = new Slider(50, 2000, 500);
-        speedSlider.setPrefWidth(100);
-        speedSlider.setDisable(true);
-        speedModeToggle.setOnAction(e -> {
-            speedSlider.setDisable(!speedModeToggle.isSelected());
-            speedModeToggle.setText(speedModeToggle.isSelected() ? "Slow" : "Fast");
-        });
-        lmcExecutor.setSpeedControls(speedModeToggle, speedSlider);
-
-        Button collapseExplorerBtn = new Button("◀");
-        collapseExplorerBtn.setOnAction(e -> toggleExplorerPane());
-        Button collapseToolsBtn = new Button("▶");
-        collapseToolsBtn.setOnAction(e -> toggleToolsPane());
-
-        ToolBar toolBar = new ToolBar(collapseExplorerBtn, new Separator(), startButton, stopButton, stepButton,
-                new Separator(), speedModeToggle, speedSlider, new Separator(), collapseToolsBtn);
-        toolBar.getStyleClass().add("main-toolbar");
-        return toolBar;
-    }
-
-    public void toggleExplorerPane() {
-        if (mainHorizontalSplit.getItems().size() < 2)
-            return;
-        double currentPos = mainHorizontalSplit.getDividerPositions()[0];
-        if (currentPos > 0.01) {
-            lastExplorerDividerPos = currentPos;
-            mainHorizontalSplit.setDividerPosition(0, 0.0);
-        } else {
-            mainHorizontalSplit.setDividerPosition(0, lastExplorerDividerPos);
+    public void applyTheme(String theme) {
+        if (root.getScene() != null) {
+            root.getScene().getRoot().getStyleClass().remove("dark-mode");
+            root.getScene().getRoot().getStyleClass().remove("light-mode");
+            root.getScene().getRoot().getStyleClass().add(theme);
         }
     }
 
-    public void toggleToolsPane() {
-        if (mainHorizontalSplit.getItems().size() < 3)
-            return;
-        double currentPos = mainHorizontalSplit.getDividerPositions()[1];
-        if (currentPos < 0.99) {
-            lastToolsDividerPos = currentPos;
-            mainHorizontalSplit.setDividerPosition(1, 1.0);
+    public void toggleToolsSidebar() {
+        if (mainSplitPane.getItems().contains(toolsSidebar)) {
+            mainSplitPane.getItems().remove(toolsSidebar);
         } else {
-            mainHorizontalSplit.setDividerPosition(1, lastToolsDividerPos);
+            mainSplitPane.getItems().add(toolsSidebar);
+            mainSplitPane.setDividerPositions(0.75);
         }
     }
 
-    private VBox createFindPopup() {
-        findField = new TextField();
-        Button findNextBtn = new Button("↓");
-        findNextBtn.setOnAction(e -> fileManager.findNext(findField.getText()));
-        Button closeFindBtn = new Button("✕");
-        closeFindBtn.setOnAction(e -> findPopup.setVisible(false));
-        HBox hbox = new HBox(5, new Label("Find:"), findField, findNextBtn, closeFindBtn);
-        hbox.setAlignment(Pos.CENTER);
-        VBox popup = new VBox(hbox);
-        popup.getStyleClass().add("popup");
-        popup.setVisible(false);
-        return popup;
-    }
-
-    private VBox createReplacePopup() {
-        replaceFindField = new TextField();
-        replaceWithField = new TextField();
-        Button replaceBtn = new Button("Replace");
-        replaceBtn.setOnAction(e -> fileManager.replaceNext());
-        Button replaceAllBtn = new Button("All");
-        replaceAllBtn.setOnAction(e -> fileManager.replaceAll());
-        Button closeReplaceBtn = new Button("✕");
-        closeReplaceBtn.setOnAction(e -> replacePopup.setVisible(false));
-
-        GridPane grid = new GridPane();
-        grid.setHgap(5);
-        grid.setVgap(5);
-        grid.add(new Label("Find:"), 0, 0);
-        grid.add(replaceFindField, 1, 0);
-        grid.add(new Label("With:"), 0, 1);
-        grid.add(replaceWithField, 1, 1);
-
-        HBox buttons = new HBox(5, replaceBtn, replaceAllBtn, closeReplaceBtn);
-        buttons.setAlignment(Pos.CENTER_RIGHT);
-
-        VBox popup = new VBox(10, grid, buttons);
-        popup.getStyleClass().add("popup");
-        popup.setVisible(false);
-        return popup;
+    public void toggleMemoryView() {
+        if (root.getBottom() == memoryView) {
+            root.setBottom(null);
+        } else {
+            root.setBottom(memoryView);
+        }
     }
 
     public void toggleFindPopup() {
-        replacePopup.setVisible(false);
         findPopup.setVisible(!findPopup.isVisible());
-        if (findPopup.isVisible()) {
-            if (getCurrentCodeArea() != null && getCurrentCodeArea().getSelectedText() != null
-                    && !getCurrentCodeArea().getSelectedText().isEmpty()) {
-                findField.setText(getCurrentCodeArea().getSelectedText());
-            }
-            findField.requestFocus();
-        }
+        replacePopup.setVisible(false);
     }
 
     public void toggleReplacePopup() {
-        findPopup.setVisible(false);
         replacePopup.setVisible(!replacePopup.isVisible());
-        if (replacePopup.isVisible()) {
-            if (getCurrentCodeArea() != null && getCurrentCodeArea().getSelectedText() != null
-                    && !getCurrentCodeArea().getSelectedText().isEmpty()) {
-                replaceFindField.setText(getCurrentCodeArea().getSelectedText());
-            }
-            replaceFindField.requestFocus();
-        }
+        findPopup.setVisible(false);
     }
 
     public void hidePopups() {
@@ -338,55 +192,51 @@ public class UIController {
         replacePopup.setVisible(false);
     }
 
-    public CodeArea createCodeArea() {
-        CodeArea codeArea = new CodeArea();
-        codeArea.setParagraphGraphicFactory(LineNumberFactory.get(codeArea));
-        codeArea.getStyleClass().add("code-area");
-
-        codeArea.textProperty().addListener((obs, oldText, newText) -> {
-            codeArea.setStyleSpans(0, LMCSyntaxHighlighter.computeHighlighting(newText));
-            lmcExecutor.onCodeChange(newText);
-        });
-
-        return codeArea;
+    public void newEditorTab(String name, CodeArea codeArea) {
+        Tab tab = new Tab(name);
+        BorderPane editorPane = new BorderPane(codeArea);
+        tab.setContent(editorPane);
+        editorTabPane.getTabs().add(tab);
+        editorTabPane.getSelectionModel().select(tab);
     }
 
-    public CodeArea getCurrentCodeArea() {
-        Tab selectedTab = codeTabPane.getSelectionModel().getSelectedItem();
-        if (selectedTab != null && selectedTab.getContent() instanceof CodeArea) {
-            return (CodeArea) selectedTab.getContent();
+    public void refreshFileExplorer(File directory) {
+        TreeItem<File> rootItem = new TreeItem<>(directory, createFolderIcon());
+        rootItem.setExpanded(true);
+        fileExplorer.setRoot(rootItem);
+        populateTreeView(directory, rootItem);
+    }
+
+    private void populateTreeView(File directory, TreeItem<File> parentItem) {
+        File[] files = directory.listFiles();
+        if (files != null) {
+            Arrays.sort(files, (f1, f2) -> {
+                if (f1.isDirectory() && !f2.isDirectory())
+                    return -1;
+                if (!f1.isDirectory() && f2.isDirectory())
+                    return 1;
+                return f1.getName().compareToIgnoreCase(f2.getName());
+            });
+
+            for (File file : files) {
+                if (!file.getName().startsWith(".")) {
+                    TreeItem<File> item = new TreeItem<>(file,
+                            file.isDirectory() ? createFolderIcon() : createFileIcon());
+                    if (file.isDirectory()) {
+                        populateTreeView(file, item);
+                    }
+                    parentItem.getChildren().add(item);
+                }
+            }
         }
-        return null;
     }
 
-    public void applyTheme(String theme) {
-        Preferences prefs = Preferences.userNodeForPackage(App.class);
-        root.getStyleClass().removeAll("dark-mode", "light-mode");
-        root.getStyleClass().add(theme);
-        prefs.put("theme", theme);
+    public ImageView createFolderIcon() {
+        return new ImageView(new Image(getClass().getResourceAsStream("/icons/folder.svg")));
     }
 
-    public Node createFolderIcon() {
-        SVGPath svg = new SVGPath();
-        svg.setContent("M10 4H4c-1.11 0-2 .9-2 2v10c0 1.1.89 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z");
-        svg.getStyleClass().add("icon-folder");
-        StackPane pane = new StackPane(svg);
-        pane.setPrefSize(16, 16);
-        return pane;
-    }
-
-    public Node createFileIcon() {
-        SVGPath svg = new SVGPath();
-        svg.setContent(
-                "M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zM13 9V3.5L18.5 9H13z");
-        svg.getStyleClass().add("icon-file");
-        StackPane pane = new StackPane(svg);
-        pane.setPrefSize(16, 16);
-        return pane;
-    }
-
-    public String getFindPopupText() {
-        return findField.getText();
+    public ImageView createFileIcon() {
+        return new ImageView(new Image(getClass().getResourceAsStream("/icons/file.svg")));
     }
 
     public String getReplaceFindPopupText() {
@@ -395,5 +245,9 @@ public class UIController {
 
     public String getReplaceWithPopupText() {
         return replaceWithField.getText();
+    }
+
+    public TreeView<File> getFileExplorer() {
+        return fileExplorer;
     }
 }

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LMC Debugger</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 10px;
+        }
+        .controls {
+            margin-bottom: 10px;
+        }
+        .state {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .memory-view {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .memory-view th, .memory-view td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: center;
+        }
+        .memory-view .current-instruction {
+            background-color: #007ACC;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>LMC Debugger</h1>
+    <div class="controls">
+        <button onclick="stepOver()">Step Over</button>
+        <button onclick="resume()">Resume</button>
+        <button onclick="stop()">Stop</button>
+    </div>
+    <div class="state">
+        <div>
+            <h2>Accumulator</h2>
+            <p id="accumulator">0</p>
+        </div>
+        <div>
+            <h2>Program Counter</h2>
+            <p id="program-counter">0</p>
+        </div>
+    </div>
+    <h2>Memory</h2>
+    <table class="memory-view" id="memory-view"></table>
+
+    <script>
+        const vscode = acquireVsCodeApi();
+        function stepOver() { vscode.postMessage({ command: 'stepOver' }); }
+        function resume() { vscode.postMessage({ command: 'resume' }); }
+        function stop() { vscode.postMessage({ command: 'stop' }); }
+
+        const accumulatorEl = document.getElementById('accumulator');
+        const programCounterEl = document.getElementById('program-counter');
+        const memoryViewEl = document.getElementById('memory-view');
+
+        window.addEventListener('message', event => {
+            const message = event.data;
+            if (message.command === 'update') {
+                accumulatorEl.textContent = message.acc;
+                programCounterEl.textContent = message.pc;
+
+                let html = '<thead><tr>';
+                for (let i = 0; i < 10; i++) {
+                    html += `<th>${i}</th>`;
+                }
+                html += '</tr></thead><tbody>';
+
+                for (let i = 0; i < 10; i++) {
+                    html += '<tr>';
+                    for (let j = 0; j < 10; j++) {
+                        const address = i * 10 + j;
+                        const value = message.memory[address] || 0;
+                        const isCurrent = address === message.pc;
+                        html += `<td class="${isCurrent ? 'current-instruction' : ''}">${String(value).padStart(3, '0')}</td>`;
+                    }
+                    html += '</tr>';
+                }
+                html += '</tbody>';
+                memoryViewEl.innerHTML = html;
+            }
+        });
+    </script>
+</body>
+</html>

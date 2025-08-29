@@ -9,6 +9,7 @@ export class LMCInterpreter {
     private inputQueue: number[];
     private outputChannel: vscode.OutputChannel;
     private isHalted: boolean;
+    private isPaused: boolean;
     private panel: vscode.WebviewPanel | undefined;
 
     // LMC instruction opcodes (simplified for interpreter)
@@ -35,6 +36,7 @@ export class LMCInterpreter {
         this.inputQueue = [];
         this.outputChannel = outputChannel;
         this.isHalted = false;
+        this.isPaused = false;
 
         this.parseLabelsAndData();
     }
@@ -43,7 +45,7 @@ export class LMCInterpreter {
         this.panel = panel;
     }
 
-    private updateWebView() {
+    public updateWebView() {
         if (this.panel) {
             this.panel.webview.postMessage({
                 command: 'update',
@@ -116,15 +118,19 @@ export class LMCInterpreter {
 
     public async run(): Promise<void> {
         while (this.programCounter < this.programLines.length && !this.isHalted) {
-            await this.step();
+            if (!this.isPaused) {
+                await this.step();
+            }
         }
     }
 
     public async runSlow(delay: number): Promise<void> {
         if (this.isHalted) return;
 
-        await this.step();
-        this.updateWebView();
+        if (!this.isPaused) {
+            await this.step();
+            this.updateWebView();
+        }
 
         if (!this.isHalted) {
             setTimeout(() => this.runSlow(delay), delay);
@@ -243,6 +249,21 @@ export class LMCInterpreter {
         }
 
         this.programCounter++;
+        this.updateWebView();
+    }
+
+    public pause() {
+        this.isPaused = true;
+    }
+
+    public resume() {
+        this.isPaused = false;
+    }
+
+    public async stepOver() {
+        if (this.isHalted) return;
+        this.isPaused = true;
+        await this.step();
         this.updateWebView();
     }
 

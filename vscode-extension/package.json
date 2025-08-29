@@ -23,6 +23,26 @@
       {
         "command": "lmc-ide-extension.runLmcCodeSlow",
         "title": "Run LMC Code (Slow)"
+      },
+      {
+        "command": "lmc-ide-extension.debugLmcCode",
+        "title": "Debug LMC Code"
+      },
+      {
+        "command": "lmc-ide-extension.stepOver",
+        "title": "Step Over"
+      },
+      {
+        "command": "lmc-ide-extension.resume",
+        "title": "Resume"
+      },
+      {
+        "command": "lmc-ide-extension.stop",
+        "title": "Stop"
+      },
+      {
+        "command": "lmc-ide-extension.showReference",
+        "title": "LMC Quick Reference"
       }
     ],
     "languages": [
@@ -48,12 +68,13 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run build",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "build": "npm run compile"
   },
   "devDependencies": {
     "@types/vscode": "^1.80.0",

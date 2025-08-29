@@ -1,67 +1,41 @@
-/* ─────────────────────────────────────────────
- * LMC SYNTAX HIGHLIGHTING (v4)
- * Uses the new OKLCH-derived color palette.
- * ───────────────────────────────────────────── */
-
-/* --- Dark Mode Syntax --- */
-.dark-mode .keyword {
-    -fx-fill: #8b8bff;
-}
-
-/* --primary */
-.dark-mode .operand {
-    -fx-fill: #e0b869;
-}
-
-/* --secondary */
-.dark-mode .number {
-    -fx-fill: #82c4a4;
-}
-
-/* --success */
-.dark-mode .label {
-    -fx-fill: #92aef1;
-}
-
-/* --info */
-.dark-mode .comment {
-    -fx-fill: #9ea0e5;
-    -fx-font-style: italic;
-}
-
-/* --text-muted */
-
-/* --- Light Mode Syntax --- */
-.light-mode .keyword {
-    -fx-fill: #005ae0;
-}
-
-.light-mode .operand {
-    -fx-fill: #c78600;
-}
-
-.light-mode .number {
-    -fx-fill: #198754;
-}
-
-.light-mode .label {
-    -fx-fill: #563d7c;
-}
-
-.light-mode .comment {
-    -fx-fill: #5a6169;
-    -fx-font-style: italic;
-}
-
-/* --- Shared Styles --- */
 .keyword {
+    -fx-fill: -fx-primary;
     -fx-font-weight: bold;
 }
 
-.error-line {
-    -fx-background-color: rgba(220, 53, 69, 0.2);
+.comment {
+    -fx-fill: #6A9955;
 }
 
-.current-line {
-    -fx-background-color: rgba(108, 117, 125, 0.2);
+.string {
+    -fx-fill: #CE9178;
+}
+
+.integer {
+    -fx-fill: #B5CEA8;
+}
+
+.instruction {
+    -fx-fill: -fx-primary;
+    -fx-font-weight: bold;
+}
+
+.label {
+    -fx-fill: #9CDCFE;
+}
+
+.dark-mode .comment {
+    -fx-fill: #6A9955;
+}
+
+.dark-mode .string {
+    -fx-fill: #CE9178;
+}
+
+.dark-mode .integer {
+    -fx-fill: #B5CEA8;
+}
+
+.dark-mode .label {
+    -fx-fill: #9CDCFE;
 }

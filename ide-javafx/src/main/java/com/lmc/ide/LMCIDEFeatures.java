@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 
 public class LMCIDEFeatures {
 
-    private final App app;
+    private final UIController uiController;
     private final LMCParser lmcParser;
     private final Label memoryUsageLabel;
     private boolean autocorrectEnabled;
@@ -38,9 +38,9 @@ public class LMCIDEFeatures {
     private static final List<String> LMC_INSTRUCTIONS = Arrays.asList(
             "INP", "OUT", "LDA", "STA", "ADD", "SUB", "BRA", "BRZ", "BRP", "HLT", "DAT");
 
-    public LMCIDEFeatures(App app, LMCParser lmcParser, Label memoryUsageLabel,
+    public LMCIDEFeatures(UIController uiController, LMCParser lmcParser, Label memoryUsageLabel,
             boolean autocorrectEnabled, boolean autoFormattingEnabled, boolean errorHighlightingEnabled) {
-        this.app = app;
+        this.uiController = uiController;
         this.lmcParser = lmcParser;
         this.memoryUsageLabel = memoryUsageLabel;
         this.autocorrectEnabled = autocorrectEnabled;
@@ -51,10 +51,10 @@ public class LMCIDEFeatures {
     }
 
     private void setupAllFeatures() {
-        app.getUiController().getCodeTabPane().getSelectionModel().selectedItemProperty()
+        uiController.getEditorTabPane().getSelectionModel().selectedItemProperty()
                 .addListener((obs, oldTab, newTab) -> {
                     if (newTab != null) {
-                        CodeArea codeArea = app.getCurrentCodeArea();
+                        CodeArea codeArea = uiController.getCurrentCodeArea();
                         if (codeArea != null) {
                             setupAutocomplete(codeArea);
                             setupErrorHighlighting(codeArea);

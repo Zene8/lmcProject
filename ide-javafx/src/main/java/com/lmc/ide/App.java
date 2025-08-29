@@ -2,9 +2,14 @@ package com.lmc.ide;
 
 import javafx.application.Application;
 import javafx.scene.Scene;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuBar;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.CheckMenuItem;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
+import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 import org.fxmisc.richtext.CodeArea;
 
@@ -19,10 +24,12 @@ public class App extends Application {
     private LMCInterpreter interpreter;
     private LMCParser parser;
     private LMCIDEFeatures ideFeatures;
+    private Preferences prefs;
 
     @Override
     public void start(Stage primaryStage) {
         primaryStage.setTitle("LMC IDE");
+        prefs = Preferences.userNodeForPackage(App.class);
 
         // --- Initialize Core Components ---
         interpreter = new LMCInterpreter();
@@ -34,17 +41,14 @@ public class App extends Application {
         lmcExecutor = new LMCExecutor(interpreter, parser, uiController);
 
         // --- Link Core Controllers for UI Initialization ---
-        // The UIController needs these dependencies before its components are built
         uiController.setFileManager(fileManager);
         uiController.setLmcExecutor(lmcExecutor);
 
         // --- Finalize UI construction now that its core dependencies are set ---
-        // This MUST be called before creating LMCIDEFeatures
         uiController.initComponents();
 
         // --- Setup IDE Features now that UI is fully initialized ---
-        Preferences prefs = Preferences.userNodeForPackage(App.class);
-        ideFeatures = new LMCIDEFeatures(this, parser, uiController.getMemoryUsageLabel(),
+        ideFeatures = new LMCIDEFeatures(uiController, parser, uiController.getMemoryUsageLabel(),
                 prefs.getBoolean("autocorrectEnabled", true),
                 prefs.getBoolean("autoFormattingEnabled", true),
                 prefs.getBoolean("errorHighlightingEnabled", true));
@@ -54,7 +58,11 @@ public class App extends Application {
         lmcExecutor.setIdeFeatures(ideFeatures);
 
         // --- Build Scene ---
-        Scene scene = new Scene(uiController.getRoot(), 1600, 1000);
+        BorderPane root = new BorderPane();
+        root.setTop(createMenuBar());
+        root.setCenter(uiController.getRoot());
+
+        Scene scene = new Scene(root, 1600, 1000);
         loadStylesheet(scene, "/vscode-style.css");
         loadStylesheet(scene, "/lmc-syntax.css");
 
@@ -64,6 +72,60 @@ public class App extends Application {
         setupHotkeys(scene);
         uiController.applyTheme(prefs.get("theme", "dark-mode"));
         fileManager.newFile();
+    }
+
+    private MenuBar createMenuBar() {
+        MenuBar menuBar = new MenuBar();
+
+        // File Menu
+        Menu fileMenu = new Menu("File");
+        MenuItem newFile = new MenuItem("New");
+        newFile.setOnAction(e -> fileManager.newFile());
+        MenuItem openProject = new MenuItem("Open");
+        openProject.setOnAction(e -> fileManager.openProject());
+        MenuItem saveFile = new MenuItem("Save");
+        saveFile.setOnAction(e -> fileManager.saveFile());
+        MenuItem closeTab = new MenuItem("Close Tab");
+        closeTab.setOnAction(e -> fileManager.closeCurrentTab());
+        fileMenu.getItems().addAll(newFile, openProject, saveFile, closeTab);
+
+        // Edit Menu
+        Menu editMenu = new Menu("Edit");
+        MenuItem undo = new MenuItem("Undo");
+        undo.setOnAction(e -> {
+            if (getCurrentCodeArea() != null) getCurrentCodeArea().undo();
+        });
+        MenuItem redo = new MenuItem("Redo");
+        redo.setOnAction(e -> {
+            if (getCurrentCodeArea() != null) getCurrentCodeArea().redo();
+        });
+        MenuItem find = new MenuItem("Find");
+        find.setOnAction(e -> uiController.toggleFindPopup());
+        MenuItem replace = new MenuItem("Replace");
+        replace.setOnAction(e -> uiController.toggleReplacePopup());
+        editMenu.getItems().addAll(undo, redo, find, replace);
+
+        // View Menu
+        Menu viewMenu = new Menu("View");
+        CheckMenuItem toggleTools = new CheckMenuItem("Toggle Tools Sidebar");
+        toggleTools.setSelected(true);
+        toggleTools.setOnAction(e -> uiController.toggleToolsSidebar());
+        CheckMenuItem toggleMemory = new CheckMenuItem("Toggle Memory View");
+        toggleMemory.setSelected(true);
+        toggleMemory.setOnAction(e -> uiController.toggleMemoryView());
+        MenuItem toggleTheme = new MenuItem("Toggle Theme");
+        toggleTheme.setOnAction(e -> toggleTheme());
+        viewMenu.getItems().addAll(toggleTools, toggleMemory, toggleTheme);
+
+        menuBar.getMenus().addAll(fileMenu, editMenu, viewMenu);
+        return menuBar;
+    }
+
+    private void toggleTheme() {
+        String currentTheme = prefs.get("theme", "dark-mode");
+        String newTheme = "dark-mode".equals(currentTheme) ? "light-mode" : "dark-mode";
+        prefs.put("theme", newTheme);
+        uiController.applyTheme(newTheme);
     }
 
     private void loadStylesheet(Scene scene, String path) {
