@@ -48,40 +48,14 @@
 }
 
 /* Borders and Dividers */
-.sidebar, .console, .split-pane-divider, .titled-pane > *.content, .text-field, .find-replace-popup, .memory-mailboxes-view {
+.sidebar, .console, .memory-mailboxes-view, .tab-pane, .titled-pane {
     -fx-border-color: -fx-border-color;
-}
-
-/* Accent Colors */
-.button, .slider .thumb, .tab:selected, .toggle-button:selected {
-    -fx-background-color: -fx-accent;
-}
-
-.button:hover, .menu:hover, .menu-item:hover, .menu:showing, .toggle-button:hover {
-    -fx-background-color: -fx-accent-hover;
-}
-
-.tab:selected {
-    -fx-border-color: -fx-accent;
-}
-
-/* Specific Overrides/Refinements */
-.sidebar {
-    -fx-border-width: 0 1px 0 0;
-    -fx-padding: 5px;
-}
-
-.sidebar.right {
-    -fx-border-width: 0 0 0 1px;
-}
-
-.console {
-    -fx-border-width: 1px 0 0 0;
-    -fx-padding: 5px;
+    -fx-border-width: 1px;
 }
 
 .split-pane-divider {
     -fx-padding: 0 1px;
+    -fx-background-color: -fx-border-color;
 }
 
 .tab {
