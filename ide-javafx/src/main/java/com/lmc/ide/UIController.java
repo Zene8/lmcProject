@@ -282,8 +282,9 @@ public class UIController {
         sidebar.getStyleClass().add("sidebar");
 
         // Run Controls Panel
-        HBox runControlsPanel = createRunControlsPanel();
-        runControlsPanel.getStyleClass().add("control-panel"); // Apply style class
+        TitledPane runControlsPane = new TitledPane("Run Controls", createRunControlsPanel());
+        runControlsPane.setCollapsible(true);
+        runControlsPane.setExpanded(true);
 
         // Tools Tab Pane
         TabPane toolsTabPane = new TabPane();
@@ -307,18 +308,18 @@ public class UIController {
 
         toolsTabPane.getTabs().addAll(toolsTab, memoryTab, learnTab, aiChatTab);
 
-        sidebar.getChildren().addAll(runControlsPanel, toolsTabPane);
+        sidebar.getChildren().addAll(runControlsPane, toolsTabPane);
         return sidebar;
     }
 
     private HBox createRunControlsPanel() {
-        Button startButton = new Button("Run");
+        Button startButton = new Button("▶️");
         startButton.setTooltip(new Tooltip("Run Program"));
-        Button stopButton = new Button("Stop");
+        Button stopButton = new Button("⏹️");
         stopButton.setTooltip(new Tooltip("Stop Program"));
-        Button stepButton = new Button("Step");
+        Button stepButton = new Button("⏭️");
         stepButton.setTooltip(new Tooltip("Step Program"));
-        Button resetButton = new Button("Reset");
+        Button resetButton = new Button("🔄");
         resetButton.setTooltip(new Tooltip("Reset Program"));
 
         // Set actions
@@ -331,7 +332,7 @@ public class UIController {
         lmcExecutor.setControls(startButton, stopButton, stepButton, resetButton);
 
         // Speed controls
-        ToggleButton speedModeToggle = new ToggleButton("Slow Mode");
+        ToggleButton speedModeToggle = new ToggleButton("⏩");
         Slider speedSlider = new Slider(10, 1000, 500); // Min, Max, Default
         speedSlider.setBlockIncrement(100);
         speedSlider.setShowTickLabels(true);
@@ -546,6 +547,7 @@ public class UIController {
         // Set paragraph graphic factory for line numbers and error indicators
         codeArea.setParagraphGraphicFactory(lineNumber -> {
             HBox hbox = new HBox(LineNumberFactory.get(codeArea).apply(lineNumber));
+            hbox.getStyleClass().add("lineno");
             hbox.setAlignment(Pos.CENTER_LEFT);
             hbox.setSpacing(5);
 
