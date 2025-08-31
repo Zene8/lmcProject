@@ -2,45 +2,29 @@
 :root {
     -font-main: "Segoe UI", Arial, sans-serif;
 
-    /* Light Theme Colors (Custom Variables) */
-    --lmc-light-bg-primary: #F8F8F8; /* Main background */
-    --lmc-light-bg-secondary: #FFFFFF; /* Content areas, editor background */
-    --lmc-light-bg-tertiary: #F0F0F0; /* Headers, toolbars, selected tab background */
-    --lmc-light-text-primary: #000000; /* Black text */
-    --lmc-light-text-secondary: #555555; /* Secondary text, less important info */
-    --lmc-light-border-primary: #CCCCCC; /* Grey lines for separation */
-    --lmc-light-accent-primary: #87CEEB; /* Light Sky Blue */
-    --lmc-light-accent-secondary: #6495ED; /* Cornflower Blue (slightly darker sky blue) */
-    --lmc-light-error: #D32F2F; /* Red */
-
-    /* Dark Theme Colors (Custom Variables - will override light in dark-mode) */
-    --lmc-dark-bg-primary: #1A1A2E; /* Dark Blue/Black */
-    --lmc-dark-bg-secondary: #16213E; /* Slightly darker blue */
-    --lmc-dark-bg-tertiary: #0F3460; /* Even darker blue */
-    --lmc-dark-text-primary: #FFFFFF; /* White text */
-    --lmc-dark-text-secondary: #A0A0A0; /* Medium light grey */
-    --lmc-dark-border-primary: #3C3C3C; /* Grey lines for separation */
-    --lmc-dark-accent-primary: #007ACC; /* Ocean Blue (VS Code Blue) */
-    --lmc-dark-accent-secondary: #005A9E; /* Darker Ocean Blue */
-    --lmc-dark-error: #F44336; /* Red */
-
-    /* Default Theme (Light) - Apply custom variables to standard JavaFX properties */
-    -fx-background-color: var(--lmc-light-bg-primary);
-    -fx-text-fill: var(--lmc-light-text-primary);
-    -fx-border-color: var(--lmc-light-border-primary);
-    -fx-accent-color: var(--lmc-light-accent-primary);
-    -fx-accent-color-hover: var(--lmc-light-accent-secondary);
-    -fx-error-color: var(--lmc-light-error);
+    /* Default Theme (Light) Colors */
+    --lmc-bg-primary: #F8F8F8; /* Main background */
+    --lmc-bg-secondary: #FFFFFF; /* Content areas, editor background */
+    --lmc-bg-tertiary: #F0F0F0; /* Headers, toolbars, selected tab background */
+    --lmc-text-primary: #000000; /* Black text */
+    --lmc-text-secondary: #555555; /* Secondary text, less important info */
+    --lmc-border-primary: #CCCCCC; /* Grey lines for separation */
+    --lmc-accent-primary: #87CEEB; /* Light Sky Blue */
+    --lmc-accent-secondary: #6495ED; /* Cornflower Blue (slightly darker sky blue) */
+    --lmc-error: #D32F2F; /* Red */
 }
 
 .root.dark-mode {
-    /* Dark Theme - Override standard JavaFX properties with dark custom variables */
-    -fx-background-color: var(--lmc-dark-bg-primary);
-    -fx-text-fill: var(--lmc-dark-text-primary);
-    -fx-border-color: var(--lmc-dark-border-primary);
-    -fx-accent-color: var(--lmc-dark-accent-primary);
-    -fx-accent-color-hover: var(--lmc-dark-accent-secondary);
-    -fx-error-color: var(--lmc-dark-error);
+    /* Dark Theme Colors - Overrides Light Theme */
+    --lmc-bg-primary: #1A1A2E; /* Dark Blue/Black */
+    --lmc-bg-secondary: #16213E; /* Slightly darker blue */
+    --lmc-bg-tertiary: #0F3460; /* Even darker blue */
+    --lmc-text-primary: #FFFFFF; /* White text */
+    --lmc-text-secondary: #A0A0A0; /* Medium light grey */
+    --lmc-border-primary: #3C3C3C; /* Grey lines for separation */
+    --lmc-accent-primary: #007ACC; /* Ocean Blue (VS Code Blue) */
+    --lmc-accent-secondary: #005A9E; /* Darker Ocean Blue */
+    --lmc-error: #F44336; /* Red */
 }
 
 /* === General Theme Application === */
@@ -48,42 +32,40 @@
     -fx-font-family: -font-main;
     -fx-font-size: 14px;
     -fx-padding: 5px; /* Overall padding for the root */
+    -fx-background-color: var(--lmc-bg-primary);
+    -fx-text-fill: var(--lmc-text-primary);
 }
 
 /* Backgrounds and Text */
-.sidebar, .console, .code-area, .tree-view, .tab-pane .tab-content-area, .titled-pane > *.content, .text-field, .find-replace-popup {
-    -fx-background-color: -fx-background-color;
+.sidebar, .console, .code-area, .tree-view, .tab-pane .tab-content-area, .titled-pane > *.content, .text-field, .find-replace-popup, .memory-mailboxes-view {
+    -fx-background-color: var(--lmc-bg-secondary);
 }
 
 .label, .menu-bar .label, .titled-pane > .title > .text, .tree-cell, .tab-label, .text-field {
-    -fx-text-fill: -fx-text-fill;
+    -fx-text-fill: var(--lmc-text-primary);
 }
 
 /* Headers and Toolbars */
 .menu-bar, .tab-header-background, .titled-pane > .title, .control-panel, .toggle-button {
-    -fx-background-color: var(--lmc-light-bg-tertiary);
-}
-
-.dark-mode .menu-bar, .dark-mode .tab-header-background, .dark-mode .titled-pane > .title, .dark-mode .control-panel, .dark-mode .toggle-button {
-    -fx-background-color: var(--lmc-dark-bg-tertiary);
+    -fx-background-color: var(--lmc-bg-tertiary);
 }
 
 /* Borders and Dividers */
-.sidebar, .console, .split-pane-divider, .titled-pane > *.content, .text-field, .find-replace-popup {
-    -fx-border-color: -fx-border-color;
+.sidebar, .console, .split-pane-divider, .titled-pane > *.content, .text-field, .find-replace-popup, .memory-mailboxes-view {
+    -fx-border-color: var(--lmc-border-primary);
 }
 
 /* Accent Colors */
 .button, .slider .thumb, .tab:selected, .toggle-button:selected {
-    -fx-background-color: -fx-accent-color;
+    -fx-background-color: var(--lmc-accent-primary);
 }
 
 .button:hover, .menu:hover, .menu-item:hover, .menu:showing, .toggle-button:hover {
-    -fx-background-color: -fx-accent-color-hover;
+    -fx-background-color: var(--lmc-accent-secondary);
 }
 
 .tab:selected {
-    -fx-border-color: -fx-accent-color;
+    -fx-border-color: var(--lmc-accent-primary);
 }
 
 /* Specific Overrides/Refinements */
@@ -117,11 +99,11 @@
 }
 
 .tab-label {
-    -fx-text-fill: -fx-text-fill;
+    -fx-text-fill: var(--lmc-text-primary);
 }
 
 .tab:selected .tab-label {
-    -fx-text-fill: white;
+    -fx-text-fill: var(--lmc-text-primary);
 }
 
 .titled-pane > .title {
@@ -152,11 +134,7 @@
 }
 
 .icon-button:hover {
-    -fx-background-color: var(--lmc-light-bg-tertiary);
-}
-
-.dark-mode .icon-button:hover {
-    -fx-background-color: var(--lmc-dark-bg-tertiary);
+    -fx-background-color: var(--lmc-bg-tertiary);
 }
 
 .code-area {
@@ -164,15 +142,11 @@
 }
 
 .paragraph-box:has-caret {
-    -fx-background-color: var(--lmc-light-bg-tertiary);
-}
-
-.dark-mode .paragraph-box:has-caret {
-    -fx-background-color: var(--lmc-dark-bg-tertiary);
+    -fx-background-color: var(--lmc-bg-tertiary);
 }
 
 .error-icon {
-    -fx-fill: -fx-error-color;
+    -fx-fill: var(--lmc-error);
 }
 
 .current-line {
@@ -184,7 +158,7 @@
 }
 
 .tree-cell:selected {
-    -fx-background-color: -fx-accent-color;
+    -fx-background-color: var(--lmc-accent-primary);
 }
 
 .tree-cell:selected .text {
@@ -198,19 +172,19 @@
 }
 
 .slider .track {
-    -fx-background-color: -fx-border-color;
+    -fx-background-color: var(--lmc-border-primary);
     -fx-pref-height: 4px;
 }
 
 .slider .thumb {
-    -fx-background-color: -fx-accent-color;
+    -fx-background-color: var(--lmc-accent-primary);
     -fx-background-radius: 50%;
     -fx-pref-width: 12px;
     -fx-pref-height: 12px;
 }
 
 .slider .axis {
-    -fx-tick-label-fill: -fx-text-fill;
+    -fx-tick-label-fill: var(--lmc-text-secondary);
 }
 
 .toggle-button {
@@ -219,7 +193,7 @@
 }
 
 .status-bar {
-    -fx-background-color: -fx-accent-color;
+    -fx-background-color: var(--lmc-accent-primary);
     -fx-text-fill: white;
     -fx-padding: 5px 10px;
     -fx-font-size: 12px;
@@ -229,4 +203,31 @@
     -fx-background-radius: 3px;
     -fx-padding: 5px;
     -fx-border-width: 1px;
+}
+
+.text-field:focused, .button:focused, .toggle-button:focused {
+    -fx-border-color: var(--lmc-accent-primary);
+    -fx-border-width: 2px;
+}
+
+.scroll-pane > .scroll-bar:vertical > .track-background,
+.scroll-pane > .scroll-bar:horizontal > .track-background {
+    -fx-background-color: var(--lmc-bg-tertiary);
+}
+
+.scroll-pane > .scroll-bar:vertical > .thumb,
+.scroll-pane > .scroll-bar:horizontal > .thumb {
+    -fx-background-color: var(--lmc-accent-primary);
+    -fx-background-radius: 5px;
+}
+
+.scroll-pane > .scroll-bar:vertical > .thumb:hover,
+.scroll-pane > .scroll-bar:horizontal > .thumb:hover {
+    -fx-background-color: var(--lmc-accent-secondary);
+}
+
+.memory-mailboxes-view {
+    -fx-border-color: var(--lmc-border-primary);
+    -fx-border-width: 1px;
+    -fx-padding: 5px;
 }

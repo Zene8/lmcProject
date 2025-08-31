@@ -38,7 +38,8 @@ public class UIController {
     private LMCExecutor lmcExecutor;
     private LMCIDEFeatures ideFeatures;
 
-    private Label memoryUsageLabel;
+    private Label memoryUsageLabel; // This label will be part of the memory mailboxes view
+    private VBox memoryMailboxesView; // New member for memory mailboxes
 
     private VBox findPopup;
     private TextField findField;
@@ -50,6 +51,7 @@ public class UIController {
 
     public UIController(Stage primaryStage) {
         this.primaryStage = primaryStage;
+        this.memoryUsageLabel = new Label("Memory Usage: 0/100"); // Initialize here
     }
 
     public void setFileManager(FileManager fileManager) {
@@ -70,9 +72,13 @@ public class UIController {
         fileExplorer = new TreeView<>();
         statusBar = new Label("Ready"); // Initialized status bar
 
+        // StackPane for editor and popups
+        StackPane editorStackPane = new StackPane();
+        editorStackPane.getChildren().add(editorTabPane);
+
         // Main content area with resizable sidebars
         mainSplitPane = new SplitPane();
-        mainSplitPane.setDividerPositions(0.2, 0.8);
+        mainSplitPane.setDividerPositions(0.166, 0.833);
 
         // Vertical split for editor and console
         verticalSplitPane = new SplitPane();
@@ -82,16 +88,21 @@ public class UIController {
         // Construct the layout
         leftSidebar = createLeftSidebar();
         rightSidebar = createRightSidebar();
-        console = createConsole();
+        console = createConsoleView(); // Renamed
 
         mainSplitPane.getItems().addAll(leftSidebar, verticalSplitPane, rightSidebar);
-        verticalSplitPane.getItems().addAll(editorTabPane, console);
+        verticalSplitPane.getItems().addAll(editorStackPane, console); // Use editorStackPane here
 
         root.setCenter(mainSplitPane);
         root.setBottom(statusBar); // Added status bar to layout
 
         createFindPopup();
         createReplacePopup();
+
+        // Add popups to the editorStackPane and position them
+        editorStackPane.getChildren().addAll(findPopup, replacePopup);
+        StackPane.setAlignment(findPopup, Pos.TOP_RIGHT);
+        StackPane.setAlignment(replacePopup, Pos.TOP_RIGHT);
     }
 
     private VBox createLeftSidebar() {
@@ -107,30 +118,90 @@ public class UIController {
     private VBox createRightSidebar() {
         VBox sidebar = new VBox();
         sidebar.getStyleClass().add("sidebar");
+
+        // Run Controls Panel
+        HBox runControlsPanel = createRunControlsPanel();
+        runControlsPanel.getStyleClass().add("control-panel"); // Apply style class
+
+        // Tools Tab Pane
         TabPane toolsTabPane = new TabPane();
 
         Tab toolsTab = new Tab("Tools");
         toolsTab.setClosable(false);
         // Add tools components here
 
+        Tab memoryTab = new Tab("Memory"); // New tab for memory mailboxes
+        memoryTab.setClosable(false);
+        memoryMailboxesView = createMemoryMailboxesView(); // Create memory mailboxes view
+        memoryTab.setContent(memoryMailboxesView);
+
         Tab learnTab = new Tab("Learn");
         learnTab.setClosable(false);
         // Add learning components here
 
-        toolsTabPane.getTabs().addAll(toolsTab, learnTab);
-        sidebar.getChildren().add(toolsTabPane);
+        toolsTabPane.getTabs().addAll(toolsTab, memoryTab, learnTab);
+
+        sidebar.getChildren().addAll(runControlsPanel, toolsTabPane);
         return sidebar;
     }
 
-    private BorderPane createConsole() {
+    private HBox createRunControlsPanel() {
+        Button startButton = new Button("", createIcon("play_arrow.svg", 24));
+        startButton.setTooltip(new Tooltip("Run Program"));
+        Button stopButton = new Button("", createIcon("stop.svg", 24));
+        stopButton.setTooltip(new Tooltip("Stop Program"));
+        Button stepButton = new Button("", createIcon("skip_next.svg", 24));
+        stepButton.setTooltip(new Tooltip("Step Program"));
+        Button resetButton = new Button("", createIcon("refresh.svg", 24));
+        resetButton.setTooltip(new Tooltip("Reset Program"));
+
+        // Set actions
+        startButton.setOnAction(e -> lmcExecutor.runLMC());
+        stopButton.setOnAction(e -> lmcExecutor.stopLMC());
+        stepButton.setOnAction(e -> lmcExecutor.executeStep());
+        resetButton.setOnAction(e -> lmcExecutor.resetProgram());
+
+        // Pass controls to LMCExecutor
+        lmcExecutor.setControls(startButton, stopButton, stepButton, resetButton);
+
+        // Speed controls
+        ToggleButton speedModeToggle = new ToggleButton("Slow Mode");
+        Slider speedSlider = new Slider(10, 1000, 500); // Min, Max, Default
+        speedSlider.setBlockIncrement(100);
+        speedSlider.setShowTickLabels(true);
+        speedSlider.setShowTickMarks(true);
+        speedSlider.setMajorTickUnit(100);
+
+        speedSlider.disableProperty().bind(speedModeToggle.selectedProperty().not());
+
+        lmcExecutor.setSpeedControls(speedModeToggle, speedSlider);
+
+        HBox controlPanel = new HBox(10); // Spacing of 10
+        controlPanel.setAlignment(Pos.CENTER_RIGHT);
+        controlPanel.setPadding(new Insets(5));
+        controlPanel.getChildren().addAll(startButton, stopButton, stepButton, resetButton, speedModeToggle,
+                speedSlider);
+        return controlPanel;
+    }
+
+    private BorderPane createConsoleView() {
         BorderPane consolePane = new BorderPane();
         consolePane.getStyleClass().add("console");
-        memoryUsageLabel = new Label("Memory Usage: 0/100");
+        // This will be the actual console for I/O and errors
+        // For now, it's empty, but will be populated later.
         TitledPane consoleTitlePane = new TitledPane("Console", consolePane);
         consoleTitlePane.setCollapsible(true);
         consoleTitlePane.setExpanded(true);
-        consolePane.setCenter(memoryUsageLabel);
         return consolePane;
+    }
+
+    private VBox createMemoryMailboxesView() {
+        VBox mailboxesView = new VBox();
+        mailboxesView.getStyleClass().add("memory-mailboxes-view");
+        // memoryUsageLabel is now initialized in the constructor
+        mailboxesView.getChildren().add(memoryUsageLabel);
+        // Add actual memory mailboxes display here later
+        return mailboxesView;
     }
 
     private void createFindPopup() {
@@ -213,11 +284,56 @@ public class UIController {
             mainSplitPane.getItems().remove(rightSidebar);
         } else {
             mainSplitPane.getItems().add(rightSidebar);
-            mainSplitPane.setDividerPositions(0.2, 0.8);
+            // Re-add in correct order
+            mainSplitPane.getItems().remove(verticalSplitPane);
+            mainSplitPane.getItems().add(verticalSplitPane);
+            mainSplitPane.getItems().remove(rightSidebar);
+            mainSplitPane.getItems().add(rightSidebar);
+            mainSplitPane.setDividerPositions(0.166, 0.833);
         }
     }
 
-    public void toggleMemoryView() {
+    public void toggleLeftSidebar() {
+        if (mainSplitPane.getItems().contains(leftSidebar)) {
+            mainSplitPane.getItems().remove(leftSidebar);
+        } else {
+            mainSplitPane.getItems().add(0, leftSidebar);
+            mainSplitPane.setDividerPositions(0.166, 0.833);
+        }
+    }
+
+    private double[] originalMainSplitPanePositions = null;
+    private double[] originalVerticalSplitPanePositions = null;
+
+    public void toggleEditorMaximize() {
+        if (mainSplitPane.getItems().size() == 1 && mainSplitPane.getItems().get(0) == verticalSplitPane) {
+            // Editor is maximized, restore original layout
+            mainSplitPane.getItems().clear();
+            if (leftSidebar != null) mainSplitPane.getItems().add(leftSidebar);
+            mainSplitPane.getItems().add(verticalSplitPane);
+            if (rightSidebar != null) mainSplitPane.getItems().add(rightSidebar);
+
+            if (originalMainSplitPanePositions != null) {
+                mainSplitPane.setDividerPositions(originalMainSplitPanePositions);
+            }
+            if (originalVerticalSplitPanePositions != null) {
+                verticalSplitPane.setDividerPositions(originalVerticalSplitPanePositions);
+            }
+        } else {
+            // Maximize editor
+            originalMainSplitPanePositions = mainSplitPane.getDividerPositions();
+            originalVerticalSplitPanePositions = verticalSplitPane.getDividerPositions();
+
+            mainSplitPane.getItems().clear();
+            mainSplitPane.getItems().add(verticalSplitPane);
+
+            verticalSplitPane.getItems().clear();
+            verticalSplitPane.getItems().add(editorTabPane);
+            verticalSplitPane.setDividerPositions(0.0); // Editor takes full vertical space
+        }
+    }
+
+    public void toggleConsoleView() {
         if (verticalSplitPane.getItems().contains(console)) {
             verticalSplitPane.getItems().remove(console);
         } else {

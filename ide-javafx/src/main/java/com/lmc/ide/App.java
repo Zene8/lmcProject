@@ -66,8 +66,7 @@ public class App extends Application {
 
         // --- Build Scene ---
         BorderPane root = new BorderPane();
-        VBox topBar = new VBox(createMenuBar(), createControlPanel());
-        root.setTop(topBar);
+        root.setTop(createMenuBar());
         root.setCenter(uiController.getRoot());
 
         Scene scene = new Scene(root, 1600, 1000);
@@ -122,9 +121,15 @@ public class App extends Application {
         CheckMenuItem toggleTools = new CheckMenuItem("Toggle Tools Sidebar");
         toggleTools.setSelected(true);
         toggleTools.setOnAction(e -> uiController.toggleToolsSidebar());
-        CheckMenuItem toggleMemory = new CheckMenuItem("Toggle Memory View");
-        toggleMemory.setSelected(true);
-        toggleMemory.setOnAction(e -> uiController.toggleMemoryView());
+        CheckMenuItem toggleLeft = new CheckMenuItem("Toggle File Explorer");
+        toggleLeft.setSelected(true);
+        toggleLeft.setOnAction(e -> uiController.toggleLeftSidebar());
+        CheckMenuItem toggleConsole = new CheckMenuItem("Toggle Console View");
+        toggleConsole.setSelected(true);
+        toggleConsole.setOnAction(e -> uiController.toggleConsoleView());
+        CheckMenuItem maximizeEditor = new CheckMenuItem("Maximize Editor");
+        maximizeEditor.setSelected(false);
+        maximizeEditor.setOnAction(e -> uiController.toggleEditorMaximize());
         MenuItem toggleTheme = new MenuItem("Toggle Theme");
         toggleTheme.setOnAction(e -> toggleTheme());
 
@@ -153,8 +158,8 @@ public class App extends Application {
             ideFeatures.setErrorHighlightingEnabled(enabled);
         });
 
-        viewMenu.getItems().addAll(toggleTools, toggleMemory, toggleTheme, new SeparatorMenuItem(), toggleAutocorrect,
-                toggleAutoFormat, toggleErrorHighlighting);
+        viewMenu.getItems().addAll(toggleTools, toggleLeft, toggleConsole, maximizeEditor, toggleTheme,
+                new SeparatorMenuItem(), toggleAutocorrect, toggleAutoFormat, toggleErrorHighlighting);
 
         // Code Menu
         Menu codeMenu = new Menu("Code");
