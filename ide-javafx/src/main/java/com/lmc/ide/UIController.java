@@ -311,7 +311,17 @@ public class UIController {
     }
 
     public ImageView createIcon(String iconName, double size) {
-        Image image = new Image(getClass().getResourceAsStream("/icons/" + iconName));
+        String path = "/icons/" + iconName;
+        InputStream stream = getClass().getResourceAsStream(path);
+
+        if (stream == null) {
+            System.err.println("Error: Icon resource not found at path: " + path);
+            // Return a placeholder or default icon instead of crashing
+            // For now, returning an empty ImageView, but a default icon would be better
+            return new ImageView();
+        }
+
+        Image image = new Image(stream);
         ImageView imageView = new ImageView(image);
         imageView.setFitWidth(size);
         imageView.setFitHeight(size);
