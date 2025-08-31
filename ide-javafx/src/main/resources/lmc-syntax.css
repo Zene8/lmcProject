@@ -1,59 +1,62 @@
 .error-icon {
-    -fx-fill: red;
-    -fx-stroke: darkred;
+    -fx-fill: -fx-error-color;
+    -fx-stroke: derive(-fx-error-color, -20%);
     -fx-stroke-width: 1px;
 }
 
 .error-line {
-    -fx-background-color: #301010;
+    -fx-background-color: rgba(255, 0, 0, 0.15);
 }
 
-.dark-mode .error-line {
-    -fx-background-color: #301010;
-}
-
-.light-mode .error-line {
-    -fx-background-color: #FFF0F0;
-}
-
+/* Syntax Highlighting Colors */
+/* Light Mode - More Saturated/Brighter */
 .keyword {
-    -fx-fill: -fx-primary;
+    -fx-fill: #0000FF; /* Bright Blue */
     -fx-font-weight: bold;
 }
 
 .comment {
-    -fx-fill: #6A9955;
+    -fx-fill: #00A000; /* Brighter Green */
 }
 
 .string {
-    -fx-fill: #CE9178;
+    -fx-fill: #FF4500; /* OrangeRed */
 }
 
 .integer {
-    -fx-fill: #B5CEA8;
+    -fx-fill: #8A2BE2; /* BlueViolet */
 }
 
 .instruction {
-    -fx-fill: -fx-primary;
+    -fx-fill: #0000FF; /* Bright Blue */
     -fx-font-weight: bold;
 }
 
 .label {
-    -fx-fill: #9CDCFE;
+    -fx-fill: #1E90FF; /* DodgerBlue */
+}
+
+/* Dark Mode - More Saturated/Brighter */
+.dark-mode .keyword {
+    -fx-fill: #56B6C2; /* Electric Blue/Cyan */
 }
 
 .dark-mode .comment {
-    -fx-fill: #6A9955;
+    -fx-fill: #7EC699; /* Luminous Green */
 }
 
 .dark-mode .string {
-    -fx-fill: #CE9178;
+    -fx-fill: #D7BA7D; /* Glowing Orange/Yellow */
 }
 
 .dark-mode .integer {
-    -fx-fill: #B5CEA8;
+    -fx-fill: #C586C0; /* Vivid Purple */
+}
+
+.dark-mode .instruction {
+    -fx-fill: #56B6C2; /* Electric Blue/Cyan */
 }
 
 .dark-mode .label {
-    -fx-fill: #9CDCFE;
+    -fx-fill: #9CDCFE; /* Piercing Light Blue */
 }
