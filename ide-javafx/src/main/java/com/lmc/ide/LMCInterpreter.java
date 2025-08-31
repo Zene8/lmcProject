@@ -161,4 +161,21 @@ public class LMCInterpreter {
     public String getErrorMessage() {
         return errorMessage;
     }
-}
+
+    public void resetProgram() {
+        this.programCounter = 0;
+        this.accumulator = 0;
+        this.lastAccessedAddress = -1;
+        this.outputBuffer.setLength(0);
+        this.errorMessage = null;
+        this.inputValue = null;
+        this.running.set(false);
+        Arrays.fill(memory, 0);
+        if (assembledCode != null) {
+            for (Map.Entry<Integer, Integer> entry : assembledCode.memoryMap.entrySet()) {
+                if (entry.getKey() >= 0 && entry.getKey() < MEMORY_SIZE) {
+                    memory[entry.getKey()] = entry.getValue();
+                }
+            }
+        }
+    }

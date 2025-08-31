@@ -13,8 +13,16 @@ import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 import org.fxmisc.richtext.CodeArea;
 
+import javafx.scene.control.Button;
+import javafx.scene.control.ToggleButton;
+import javafx.scene.control.Slider;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import javafx.geometry.Pos;
+import javafx.geometry.Insets;
 import java.net.URL;
 import java.util.prefs.Preferences;
+import javafx.scene.control.SeparatorMenuItem;
 
 public class App extends Application {
 
@@ -25,6 +33,7 @@ public class App extends Application {
     private LMCParser parser;
     private LMCIDEFeatures ideFeatures;
     private Preferences prefs;
+    private Button startButton, stopButton, stepButton, resetButton;
 
     @Override
     public void start(Stage primaryStage) {
@@ -59,7 +68,8 @@ public class App extends Application {
 
         // --- Build Scene ---
         BorderPane root = new BorderPane();
-        root.setTop(createMenuBar());
+        HBox controlPanel = createControlPanel();
+        root.setTop(new VBox(createMenuBar(), controlPanel));
         root.setCenter(uiController.getRoot());
 
         Scene scene = new Scene(root, 1600, 1000);
@@ -69,7 +79,7 @@ public class App extends Application {
         primaryStage.setScene(scene);
         primaryStage.show();
 
-        setupHotkeys(scene);
+        uiController.setupHotkeys(scene);
         uiController.applyTheme(prefs.get("theme", "dark-mode"));
         fileManager.newFile();
     }
@@ -92,18 +102,22 @@ public class App extends Application {
         // Edit Menu
         Menu editMenu = new Menu("Edit");
         MenuItem undo = new MenuItem("Undo");
-        undo.setOnAction(e -> {
-            if (getCurrentCodeArea() != null) getCurrentCodeArea().undo();
-        });
+        undo.setOnAction(e -> uiController.getCurrentCodeArea().undo());
         MenuItem redo = new MenuItem("Redo");
-        redo.setOnAction(e -> {
-            if (getCurrentCodeArea() != null) getCurrentCodeArea().redo();
-        });
+        redo.setOnAction(e -> uiController.getCurrentCodeArea().redo());
         MenuItem find = new MenuItem("Find");
         find.setOnAction(e -> uiController.toggleFindPopup());
         MenuItem replace = new MenuItem("Replace");
         replace.setOnAction(e -> uiController.toggleReplacePopup());
-        editMenu.getItems().addAll(undo, redo, find, replace);
+        MenuItem formatCode = new MenuItem("Format Code");
+        formatCode.setOnAction(e -> {
+            CodeArea currentCodeArea = uiController.getCurrentCodeArea();
+            if (currentCodeArea != null) {
+                String formattedText = LMCFormatter.format(currentCodeArea.getText());
+                currentCodeArea.replaceText(formattedText);
+            }
+        });
+        editMenu.getItems().addAll(undo, redo, find, replace, formatCode);
 
         // View Menu
         Menu viewMenu = new Menu("View");
@@ -115,10 +129,129 @@ public class App extends Application {
         toggleMemory.setOnAction(e -> uiController.toggleMemoryView());
         MenuItem toggleTheme = new MenuItem("Toggle Theme");
         toggleTheme.setOnAction(e -> toggleTheme());
-        viewMenu.getItems().addAll(toggleTools, toggleMemory, toggleTheme);
 
-        menuBar.getMenus().addAll(fileMenu, editMenu, viewMenu);
+        // Feature Toggles
+        CheckMenuItem toggleAutocorrect = new CheckMenuItem("Autocorrect");
+        toggleAutocorrect.setSelected(prefs.getBoolean("autocorrectEnabled", true));
+        toggleAutocorrect.setOnAction(e -> {
+            boolean enabled = toggleAutocorrect.isSelected();
+            prefs.putBoolean("autocorrectEnabled", enabled);
+            ideFeatures.setAutocorrectEnabled(enabled);
+        });
+
+        CheckMenuItem toggleAutoFormat = new CheckMenuItem("Auto Formatting on Paste");
+        toggleAutoFormat.setSelected(prefs.getBoolean("autoFormattingEnabled", true));
+        toggleAutoFormat.setOnAction(e -> {
+            boolean enabled = toggleAutoFormat.isSelected();
+            prefs.putBoolean("autoFormattingEnabled", enabled);
+            ideFeatures.setAutoFormattingEnabled(enabled);
+        });
+
+        CheckMenuItem toggleErrorHighlighting = new CheckMenuItem("Error Highlighting");
+        toggleErrorHighlighting.setSelected(prefs.getBoolean("errorHighlightingEnabled", true));
+        toggleErrorHighlighting.setOnAction(e -> {
+            boolean enabled = toggleErrorHighlighting.isSelected();
+            prefs.putBoolean("errorHighlightingEnabled", enabled);
+            ideFeatures.setErrorHighlightingEnabled(enabled);
+        });
+
+        viewMenu.getItems().addAll(toggleTools, toggleMemory, toggleTheme, new SeparatorMenuItem(), toggleAutocorrect, toggleAutoFormat, toggleErrorHighlighting);
+
+        // Code Menu
+        Menu codeMenu = new Menu("Code");
+        Menu insertSnippet = new Menu("Insert Snippet");
+
+        MenuItem snippetInputOutput = new MenuItem("Input/Output Loop");
+        snippetInputOutput.setOnAction(e -> {
+            CodeArea currentCodeArea = uiController.getCurrentCodeArea();
+            if (currentCodeArea != null) {
+                String snippet = "        INP\n        STA LOOP_VAR\nLOOP    LDA LOOP_VAR\n        OUT\n        BRZ END\n        INP\n        STA LOOP_VAR\n        BRA LOOP\nEND     HLT\nLOOP_VAR DAT 0\n";
+                currentCodeArea.insertText(currentCodeArea.getCaretPosition(), snippet);
+            }
+        });
+
+        MenuItem snippetAddTwoNumbers = new MenuItem("Add Two Numbers");
+        snippetAddTwoNumbers.setOnAction(e -> {
+            CodeArea currentCodeArea = uiController.getCurrentCodeArea();
+            if (currentCodeArea != null) {
+                String snippet = "        INP\n        STA NUM1\n        INP\n        STA NUM2\n        LDA NUM1\n        ADD NUM2\n        OUT\n        HLT\nNUM1    DAT 0\nNUM2    DAT 0\n";
+                currentCodeArea.insertText(currentCodeArea.getCaretPosition(), snippet);
+            }
+        });
+
+        MenuItem snippetDataDefinition = new MenuItem("Data Definition");
+        snippetDataDefinition.setOnAction(e -> {
+            CodeArea currentCodeArea = uiController.getCurrentCodeArea();
+            if (currentCodeArea != null) {
+                String snippet = "MY_DATA DAT 10\nANOTHER_DATA DAT 20\n";
+                currentCodeArea.insertText(currentCodeArea.getCaretPosition(), snippet);
+            }
+        });
+
+        MenuItem snippetMultiplication = new MenuItem("Multiplication");
+        snippetMultiplication.setOnAction(e -> {
+            CodeArea currentCodeArea = uiController.getCurrentCodeArea();
+            if (currentCodeArea != null) {
+                String snippet = "        INP         // Input Multiplicand (A)\n        STA MULTIPLICAND\n        INP         // Input Multiplier (B)\n        STA MULTIPLIER\n        LDA ZERO    // Initialize Result to 0\n        STA RESULT\n\nLOOP    LDA MULTIPLIER\n        BRZ END_LOOP // If Multiplier is 0, done\n        SUB ONE     // Decrement Multiplier\n        STA MULTIPLIER\n        LDA RESULT\n        ADD MULTIPLICAND // Add Multiplicand to Result\n        STA RESULT\n        BRA LOOP\n\nEND_LOOP LDA RESULT\n        OUT         // Output Result\n        HLT\n\nMULTIPLICAND DAT 0\nMULTIPLIER   DAT 0\nRESULT       DAT 0\nZERO         DAT 0\nONE          DAT 1\n";
+                currentCodeArea.insertText(currentCodeArea.getCaretPosition(), snippet);
+            }
+        });
+
+        MenuItem snippetDivision = new MenuItem("Division");
+        snippetDivision.setOnAction(e -> {
+            CodeArea currentCodeArea = uiController.getCurrentCodeArea();
+            if (currentCodeArea != null) {
+                String snippet = "        INP         // Input Dividend (A)\n        STA DIVIDEND\n        INP         // Input Divisor (B)\n        STA DIVISOR\n        LDA ZERO    // Initialize Quotient to 0\n        STA QUOTIENT\n\nLOOP    LDA DIVIDEND\n        SUB DIVISOR // Dividend - Divisor\n        BRP CONTINUE // If result >= 0, continue\n        BRA END_LOOP // If result < 0, done\n\nCONTINUE STA DIVIDEND // Store new Dividend\n        LDA QUOTIENT\n        ADD ONE     // Increment Quotient\n        STA QUOTIENT\n        BRA LOOP\n\nEND_LOOP LDA QUOTIENT\n        OUT         // Output Quotient\n        HLT\n\nDIVIDEND DAT 0\nDIVISOR  DAT 0\nQUOTIENT DAT 0\nZERO     DAT 0\nONE      DAT 1\n";
+                currentCodeArea.insertText(currentCodeArea.getCaretPosition(), snippet);
+            }
+        });
+
+        MenuItem snippetConditionalBranching = new MenuItem("Conditional Branching (IF-ELSE)");
+        snippetConditionalBranching.setOnAction(e -> {
+            CodeArea currentCodeArea = uiController.getCurrentCodeArea();
+            if (currentCodeArea != null) {
+                String snippet = "        INP         // Input a number\n        STA NUM\n        LDA NUM\n        BRZ IS_ZERO // If NUM == 0, branch to IS_ZERO\n\n        // ELSE block (NUM is not zero)\n        LDA NUM\n        OUT         // Output NUM\n        BRA END_IF\n\nIS_ZERO LDA ZERO\n        OUT         // Output 0\n\nEND_IF  HLT\n\nNUM     DAT 0\nZERO    DAT 0\n";
+                currentCodeArea.insertText(currentCodeArea.getCaretPosition(), snippet);
+            }
+        });
+
+        insertSnippet.getItems().addAll(snippetInputOutput, snippetAddTwoNumbers, snippetDataDefinition, snippetMultiplication, snippetDivision, snippetConditionalBranching);
+        codeMenu.getItems().addAll(insertSnippet);
+
+        menuBar.getMenus().addAll(fileMenu, editMenu, codeMenu, viewMenu);
         return menuBar;
+    }
+
+    private HBox createControlPanel() {
+        startButton = new Button("Start");
+        stopButton = new Button("Stop");
+        stepButton = new Button("Step");
+        resetButton = new Button("Reset");
+
+        // Set actions
+        startButton.setOnAction(e -> lmcExecutor.runLMC());
+        stopButton.setOnAction(e -> lmcExecutor.stopLMC());
+        stepButton.setOnAction(e -> lmcExecutor.executeStep());
+        resetButton.setOnAction(e -> lmcExecutor.resetProgram());
+
+        // Pass controls to LMCExecutor
+        lmcExecutor.setControls(startButton, stopButton, stepButton, resetButton);
+
+        // Speed controls
+        ToggleButton speedModeToggle = new ToggleButton("Slow Mode");
+        Slider speedSlider = new Slider(10, 1000, 500); // Min, Max, Default
+        speedSlider.setBlockIncrement(100);
+        speedSlider.setShowTickLabels(true);
+        speedSlider.setShowTickMarks(true);
+        speedSlider.setMajorTickUnit(100);
+
+        lmcExecutor.setSpeedControls(speedModeToggle, speedSlider);
+
+        HBox controlPanel = new HBox(10); // Spacing of 10
+        controlPanel.setAlignment(Pos.CENTER_LEFT);
+        controlPanel.setPadding(new Insets(5));
+        controlPanel.getChildren().addAll(startButton, stopButton, stepButton, resetButton, speedModeToggle, speedSlider);
+        return controlPanel;
     }
 
     private void toggleTheme() {
@@ -145,40 +278,11 @@ public class App extends Application {
                 fileManager::openProject);
         scene.getAccelerators().put(new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN),
                 fileManager::saveFile);
-        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.W, KeyCombination.CONTROL_DOWN),
+        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.Q, KeyCombination.CONTROL_DOWN),
                 fileManager::closeCurrentTab);
 
-        // Edit
-        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.Z, KeyCombination.CONTROL_DOWN), () -> {
-            if (getCurrentCodeArea() != null)
-                getCurrentCodeArea().undo();
-        });
-        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.Y, KeyCombination.CONTROL_DOWN), () -> {
-            if (getCurrentCodeArea() != null)
-                getCurrentCodeArea().redo();
-        });
         scene.getAccelerators().put(new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN),
                 uiController::toggleFindPopup);
-        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.H, KeyCombination.CONTROL_DOWN),
-                uiController::toggleReplacePopup);
-
-        // Run
-        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.F5), lmcExecutor::runLMC);
-        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.F6), lmcExecutor::stopLMC);
-
-        // UI
-        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.ESCAPE), uiController::hidePopups);
-    }
-
-    public CodeArea getCurrentCodeArea() {
-        return uiController.getCurrentCodeArea();
-    }
-
-    public UIController getUiController() {
-        return uiController;
-    }
-
-    public static void main(String[] args) {
-        launch(args);
     }
 }
+        

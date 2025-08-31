@@ -1,3 +1,21 @@
+.error-icon {
+    -fx-fill: red;
+    -fx-stroke: darkred;
+    -fx-stroke-width: 1px;
+}
+
+.error-line {
+    -fx-background-color: #301010;
+}
+
+.dark-mode .error-line {
+    -fx-background-color: #301010;
+}
+
+.light-mode .error-line {
+    -fx-background-color: #FFF0F0;
+}
+
 .keyword {
     -fx-fill: -fx-primary;
     -fx-font-weight: bold;

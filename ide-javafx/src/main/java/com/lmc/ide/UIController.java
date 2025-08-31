@@ -1,19 +1,27 @@
 package com.lmc.ide;
 
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
 import org.fxmisc.richtext.CodeArea;
+import org.fxmisc.richtext.LineNumberFactory;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.Collections;
 
 public class UIController {
 
@@ -37,6 +45,8 @@ public class UIController {
     private VBox replacePopup;
     private TextField replaceFindField;
     private TextField replaceWithField;
+
+    private Label statusBar;
 
     public UIController(Stage primaryStage) {
         this.primaryStage = primaryStage;
@@ -148,6 +158,17 @@ public class UIController {
         return null;
     }
 
+    public void setupHotkeys(Scene scene) {
+        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.Z, KeyCombination.CONTROL_DOWN), () -> {
+            if (getCurrentCodeArea() != null)
+                getCurrentCodeArea().undo();
+        });
+        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.Y, KeyCombination.CONTROL_DOWN), () -> {
+            if (getCurrentCodeArea() != null)
+                getCurrentCodeArea().redo();
+        });
+    }
+
     public Label getMemoryUsageLabel() {
         return memoryUsageLabel;
     }
@@ -192,12 +213,36 @@ public class UIController {
         replacePopup.setVisible(false);
     }
 
-    public void newEditorTab(String name, CodeArea codeArea) {
+    public void newTab(String name, CodeArea codeArea) {
         Tab tab = new Tab(name);
         BorderPane editorPane = new BorderPane(codeArea);
         tab.setContent(editorPane);
         editorTabPane.getTabs().add(tab);
         editorTabPane.getSelectionModel().select(tab);
+        // Set syntax highlighting for the new code area
+        codeArea.textProperty().addListener((obs, oldText, newText) -> {
+            codeArea.setStyleSpans(0, LMCSyntaxHighlighter.computeHighlighting(newText));
+        });
+
+        // Set paragraph graphic factory for line numbers and error indicators
+        codeArea.setParagraphGraphicFactory(lineNumber -> {
+            HBox hbox = new HBox(LineNumberFactory.get(codeArea).apply(lineNumber));
+            hbox.setAlignment(Pos.CENTER_LEFT);
+            hbox.setSpacing(5);
+
+            if (ideFeatures != null && ideFeatures.getLineErrors().containsKey(lineNumber)) {
+                Circle errorIcon = new Circle(4, Color.RED);
+                errorIcon.getStyleClass().add("error-icon");
+                Tooltip tooltip = new Tooltip(ideFeatures.getLineErrors().get(lineNumber));
+                Tooltip.install(errorIcon, tooltip);
+                hbox.getChildren().add(errorIcon);
+            }
+            return hbox;
+        });
+    }
+
+    public void setStatusBarMessage(String message) {
+        statusBar.setText(message);
     }
 
     public void refreshFileExplorer(File directory) {
@@ -249,5 +294,19 @@ public class UIController {
 
     public TreeView<File> getFileExplorer() {
         return fileExplorer;
+    }
+
+    public void highlightLine(int lineNumber) {
+        CodeArea codeArea = getCurrentCodeArea();
+        if (codeArea != null && lineNumber >= 0 && lineNumber < codeArea.getParagraphs().size()) {
+            codeArea.setParagraphStyle(lineNumber, Collections.singleton("current-line"));
+        }
+    }
+
+    public void clearLineHighlight(int lineNumber) {
+        CodeArea codeArea = getCurrentCodeArea();
+        if (codeArea != null && lineNumber >= 0 && lineNumber < codeArea.getParagraphs().size()) {
+            codeArea.setParagraphStyle(lineNumber, Collections.emptyList());
+        }
     }
 }

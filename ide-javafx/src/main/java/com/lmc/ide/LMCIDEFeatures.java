@@ -18,6 +18,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.HashMap;
 
 public class LMCIDEFeatures {
 
@@ -37,6 +39,22 @@ public class LMCIDEFeatures {
 
     private static final List<String> LMC_INSTRUCTIONS = Arrays.asList(
             "INP", "OUT", "LDA", "STA", "ADD", "SUB", "BRA", "BRZ", "BRP", "HLT", "DAT");
+
+    private static final Map<String, String> TYPO_CORRECTIONS = new HashMap<>();
+
+    static {
+        TYPO_CORRECTIONS.put("INPT", "INP");
+        TYPO_CORRECTIONS.put("OUTT", "OUT");
+        TYPO_CORRECTIONS.put("LOD", "LDA");
+        TYPO_CORRECTIONS.put("STOR", "STA");
+        TYPO_CORRECTIONS.put("AD", "ADD");
+        TYPO_CORRECTIONS.put("SUBT", "SUB");
+        TYPO_CORRECTIONS.put("BRNCH", "BRA");
+        TYPO_CORRECTIONS.put("BRZRO", "BRZ");
+        TYPO_CORRECTIONS.put("BRPOS", "BRP");
+        TYPO_CORRECTIONS.put("HALT", "HLT");
+        TYPO_CORRECTIONS.put("DATA", "DAT");
+    }
 
     public LMCIDEFeatures(UIController uiController, LMCParser lmcParser, Label memoryUsageLabel,
             boolean autocorrectEnabled, boolean autoFormattingEnabled, boolean errorHighlightingEnabled) {
@@ -136,6 +154,7 @@ public class LMCIDEFeatures {
                     int lineNumber = e.getLineNumber() - 1;
                     if (lineNumber >= 0 && lineNumber < codeArea.getParagraphs().size()) {
                         codeArea.setParagraphStyle(lineNumber, Collections.singleton("error-line"));
+                        lineErrors.put(lineNumber, e.getMessage());
                     }
                 });
             }
@@ -282,5 +301,11 @@ public class LMCIDEFeatures {
 
     public CompletableFuture<Integer> getPendingInputRequest() {
         return pendingInputRequest;
+    }
+
+    private Map<Integer, String> lineErrors = new HashMap<>();
+
+    public Map<Integer, String> getLineErrors() {
+        return lineErrors;
     }
 }

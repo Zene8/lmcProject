@@ -9,12 +9,14 @@ public class LMCParser {
         public final Map<Integer, Integer> memoryMap;
         public final Map<Integer, Integer> addressToLineMap;
         public final Map<Integer, String> instructions;
+        public final Map<Integer, String> addressToLabelMap;
 
         AssembledCode(Map<Integer, Integer> memoryMap, Map<Integer, Integer> addressToLineMap,
-                Map<Integer, String> instructions) {
+                Map<Integer, String> instructions, Map<Integer, String> addressToLabelMap) {
             this.memoryMap = Collections.unmodifiableMap(memoryMap);
             this.addressToLineMap = Collections.unmodifiableMap(addressToLineMap);
             this.instructions = Collections.unmodifiableMap(instructions);
+            this.addressToLabelMap = Collections.unmodifiableMap(addressToLabelMap);
         }
     }
 
@@ -97,7 +99,7 @@ public class LMCParser {
             }
             currentAddress++;
         }
-        return new AssembledCode(memoryMap, addressToLineMap, instructionsMap);
+        return new AssembledCode(memoryMap, addressToLineMap, instructionsMap, new HashMap<>());
     }
 
     private int getOpcode(String instruction, int line) throws LMCParseException {

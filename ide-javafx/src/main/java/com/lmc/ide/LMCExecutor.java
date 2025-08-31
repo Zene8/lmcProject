@@ -9,6 +9,8 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import org.fxmisc.richtext.CodeArea;
+
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -16,17 +18,17 @@ public class LMCExecutor {
     private final LMCInterpreter interpreter;
     private final LMCParser parser;
     private final UIController uiController;
-
     private LMCIDEFeatures ideFeatures;
     private TextArea console;
     private ListView<String> errorListView;
     private TabPane bottomTabPane;
-    private Button startButton, stopButton, stepButton;
+    private Button startButton, stopButton, stepButton, resetButton;
     private ToggleButton speedModeToggle;
     private Slider speedSlider;
     private Timeline executionTimeline;
     private VBox[] memoryCellBoxes = new VBox[100];
     private LMCParser.AssembledCode currentAssembledCode;
+    private int lastHighlightedLine = -1; // Added to track the last highlighted line
 
     public LMCExecutor(LMCInterpreter interpreter, LMCParser parser, UIController uiController) {
         this.interpreter = interpreter;
@@ -47,12 +49,14 @@ public class LMCExecutor {
         this.bottomTabPane = tabPane;
     }
 
-    public void setControls(Button start, Button stop, Button step) {
+    public void setControls(Button start, Button stop, Button step, Button reset) {
         this.startButton = start;
         this.stopButton = stop;
         this.stepButton = step;
+        this.resetButton = reset;
         stopButton.setDisable(true);
         stepButton.setDisable(true);
+        resetButton.setDisable(true);
     }
 
     public void setSpeedControls(ToggleButton toggle, Slider slider) {
@@ -88,6 +92,7 @@ public class LMCExecutor {
             speedSlider.setDisable(true);
         console.clear();
         errorListView.getItems().clear();
+        uiController.setStatusBarMessage("Running...");
         String lmcCode = currentCodeArea.getText();
 
         try {
@@ -113,7 +118,6 @@ public class LMCExecutor {
                     state = interpreter.step();
                 } while (state == LMCInterpreter.ExecutionState.RUNNING);
 
-                // ✅ Fix: copy to a final variable before lambda
                 final LMCInterpreter.ExecutionState finalState = state;
                 Platform.runLater(() -> finishExecution(finalState, interpreter.getErrorMessage()));
             });
@@ -131,6 +135,7 @@ public class LMCExecutor {
         if (speedSlider != null)
             speedSlider.setDisable(!speedModeToggle.isSelected());
         stepButton.setDisable(true);
+        finishExecution(LMCInterpreter.ExecutionState.STOPPED, "Stopped by user."); // Call finishExecution to clean up
     }
 
     public void executeStep() {
@@ -141,6 +146,8 @@ public class LMCExecutor {
                 executionTimeline.pause();
             if (state == LMCInterpreter.ExecutionState.BREAKPOINT_HIT) {
                 finishExecution(state, "Breakpoint hit at address " + interpreter.getProgramCounter());
+            } else { // Awaiting input
+                 finishExecution(state, "Program paused, awaiting input.");
             }
             stepButton.setDisable(false);
             return;
@@ -151,6 +158,16 @@ public class LMCExecutor {
         } else {
             updateMemoryVisualizer(interpreter.getMemory(), interpreter.getLastAccessedAddress(),
                     interpreter.getAssembledCode());
+            // Highlight current line in slow mode
+            if (speedModeToggle.isSelected()) {
+                int currentPC = interpreter.getProgramCounter();
+                if (currentAssembledCode != null && currentAssembledCode.addressToLineMap.containsKey(currentPC)) {
+                    int currentLine = currentAssembledCode.addressToLineMap.get(currentPC);
+                    uiController.clearLineHighlight(lastHighlightedLine);
+                    uiController.highlightLine(currentLine);
+                    lastHighlightedLine = currentLine;
+                }
+            }
         }
     }
 
@@ -163,25 +180,47 @@ public class LMCExecutor {
         if (speedSlider != null)
             speedSlider.setDisable(!speedModeToggle.isSelected());
         stepButton.setDisable(true);
+        uiController.clearLineHighlight(lastHighlightedLine);
+        lastHighlightedLine = -1;
 
         switch (finalState) {
             case HALTED:
                 console.appendText("\n--- Program Halted ---\n" + interpreter.getOutput());
+                uiController.setStatusBarMessage("Program Halted.");
                 break;
             case STOPPED:
                 console.appendText("\n--- Program Stopped by User ---");
+                uiController.setStatusBarMessage("Program Stopped.");
                 break;
             case ERROR:
-                console.appendText("\n--- Runtime Error ---\n" + message);
+                console.appendText("\n--- Runtime Error ---" + message);
+                errorListView.getItems().add("Runtime Error: " + message);
+                bottomTabPane.getSelectionModel().select(1); // Assuming error tab is the second tab
+                uiController.setStatusBarMessage("Runtime Error.");
                 break;
             case AWAITING_INPUT:
             case BREAKPOINT_HIT:
                 console.appendText("\n--- Program Paused ---\n" + message);
                 stepButton.setDisable(false);
+                resetButton.setDisable(false);
+                // Status message already set in executeStep()
                 break;
             default:
+                uiController.setStatusBarMessage("Ready.");
                 break;
         }
+    }
+
+    public void resetProgram() {
+        interpreter.resetProgram();
+        updateMemoryVisualizer(interpreter.getMemory(), -1, interpreter.getAssembledCode());
+        console.clear();
+        errorListView.getItems().clear();
+        uiController.setStatusBarMessage("Ready.");
+        startButton.setDisable(false);
+        stopButton.setDisable(true);
+        stepButton.setDisable(true);
+        resetButton.setDisable(true);
     }
 
     private InputProvider createInputProvider() {
@@ -226,19 +265,30 @@ public class LMCExecutor {
                     memoryUsed++;
 
                 cellBox.getStyleClass().remove("memory-cell-instruction");
+                String instructionText = "DAT";
+                if (assembledCode != null) {
+                    if (assembledCode.addressToLabelMap.containsKey(i)) {
+                        instructionText = assembledCode.addressToLabelMap.get(i);
+                        if (assembledCode.instructions.containsKey(i)) {
+                            instructionText += " (" + assembledCode.instructions.get(i) + ")";
+                        }
+                    } else if (assembledCode.instructions.containsKey(i)) {
+                        instructionText = assembledCode.instructions.get(i);
+                    }
+                }
+                ((Label) cellBox.getChildren().get(1)).setText(instructionText);
                 if (assembledCode != null && assembledCode.instructions.containsKey(i)) {
-                    ((Label) cellBox.getChildren().get(1)).setText(assembledCode.instructions.get(i));
                     cellBox.getStyleClass().add("memory-cell-instruction");
-                } else {
-                    ((Label) cellBox.getChildren().get(1)).setText("DAT");
                 }
             }
-            uiController.getMemoryUsageLabel().setText("Memory Used: " + memoryUsed + " / 100");
+            if (uiController.getMemoryUsageLabel() != null) {
+                uiController.getMemoryUsageLabel().setText("Memory Used: " + memoryUsed + " / 100");
+            }
         });
     }
 
     public void updateMemoryVisualizer(Map<Integer, Integer> memoryMap, int highlightedAddress,
-            LMCParser.AssembledCode assembledCode) {
+                                       LMCParser.AssembledCode assembledCode) {
         int[] memArray = new int[100];
         memoryMap.forEach((addr, val) -> {
             if (addr >= 0 && addr < 100)

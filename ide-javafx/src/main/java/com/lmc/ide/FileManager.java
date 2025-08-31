@@ -42,7 +42,7 @@ public class FileManager {
 
         CodeArea codeArea = new CodeArea();
         codeArea.setParagraphGraphicFactory(LineNumberFactory.get(codeArea));
-        uiController.newEditorTab(tabName, codeArea);
+        uiController.newTab(tabName, codeArea);
     }
 
     public void openFile(File file) {
@@ -57,7 +57,7 @@ public class FileManager {
             CodeArea codeArea = new CodeArea();
             codeArea.setParagraphGraphicFactory(LineNumberFactory.get(codeArea));
             codeArea.replaceText(content);
-            uiController.newEditorTab(file.getName(), codeArea);
+            uiController.newTab(file.getName(), codeArea);
         } catch (IOException e) {
             showAlert("Error", "Could not read file: " + e.getMessage());
         }

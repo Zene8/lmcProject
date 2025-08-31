@@ -141,6 +141,39 @@
     -fx-spacing: 10px;
 }
 
+.status-bar {
+    -fx-background-color: -fx-base;
+    -fx-padding: 5px 10px;
+    -fx-border-color: -fx-border-color;
+    -fx-border-width: 1px 0 0 0;
+    -fx-font-size: 12px;
+    -fx-text-fill: -fx-text-fill;
+}
+
+.dark-mode .status-bar {
+    -fx-background-color: #007ACC;
+    -fx-text-fill: #FFFFFF;
+    -fx-border-color: #007ACC;
+}
+
+.light-mode .status-bar {
+    -fx-background-color: #007ACC;
+    -fx-text-fill: #FFFFFF;
+    -fx-border-color: #007ACC;
+}
+
+.current-line {
+    -fx-background-color: #3A3A3A; /* Darker background for highlighted line */
+}
+
+.dark-mode .current-line {
+    -fx-background-color: #3A3A3A;
+}
+
+.light-mode .current-line {
+    -fx-background-color: #E0E0E0;
+}
+
 .editor-container {
     -fx-border-color: -fx-border-color;
     -fx-border-width: 1px;
