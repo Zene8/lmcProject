@@ -1,6 +1,5 @@
 package com.lmc.ide;
 
-import java.io.InputStream;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -69,6 +68,7 @@ public class UIController {
         root = new BorderPane();
         editorTabPane = new TabPane();
         fileExplorer = new TreeView<>();
+        statusBar = new Label("Ready"); // Initialized status bar
 
         // Main content area with resizable sidebars
         mainSplitPane = new SplitPane();
@@ -88,6 +88,7 @@ public class UIController {
         verticalSplitPane.getItems().addAll(editorTabPane, console);
 
         root.setCenter(mainSplitPane);
+        root.setBottom(statusBar); // Added status bar to layout
 
         createFindPopup();
         createReplacePopup();
@@ -134,12 +135,13 @@ public class UIController {
 
     private void createFindPopup() {
         findPopup = new VBox();
+        findPopup.getStyleClass().add("find-replace-popup");
         findPopup.setPadding(new Insets(10));
         findPopup.setSpacing(5);
         findField = new TextField();
         Button findNextButton = new Button("", createIcon("search.svg"));
         findNextButton.setTooltip(new Tooltip("Find Next"));
-        findNextButton.setOnAction(e -> fileManager.findNext(findField.getText()));
+        findNextButton.setOnAction(e -> ideFeatures.findNext(findField.getText(), true));
         findPopup.getChildren().addAll(new Label("Find:"), findField, findNextButton);
         findPopup.setVisible(false);
         root.getChildren().add(findPopup);
@@ -147,16 +149,17 @@ public class UIController {
 
     private void createReplacePopup() {
         replacePopup = new VBox();
+        replacePopup.getStyleClass().add("find-replace-popup");
         replacePopup.setPadding(new Insets(10));
         replacePopup.setSpacing(5);
         replaceFindField = new TextField();
         replaceWithField = new TextField();
         Button replaceNextButton = new Button("", createIcon("find_replace.svg"));
         replaceNextButton.setTooltip(new Tooltip("Replace"));
-        replaceNextButton.setOnAction(e -> fileManager.replaceNext());
+        replaceNextButton.setOnAction(e -> ideFeatures.replaceNext());
         Button replaceAllButton = new Button("", createIcon("find_replace.svg"));
         replaceAllButton.setTooltip(new Tooltip("Replace All"));
-        replaceAllButton.setOnAction(e -> fileManager.replaceAll());
+        replaceAllButton.setOnAction(e -> ideFeatures.replaceAll());
         replacePopup.getChildren().addAll(new Label("Find:"), replaceFindField, new Label("Replace with:"),
                 replaceWithField, new HBox(5, replaceNextButton, replaceAllButton));
         replacePopup.setVisible(false);
@@ -255,10 +258,11 @@ public class UIController {
             hbox.setAlignment(Pos.CENTER_LEFT);
             hbox.setSpacing(5);
 
-            if (ideFeatures != null && ideFeatures.getLineErrors().containsKey(lineNumber)) {
+            if (ideFeatures != null && ideFeatures.getLineErrors().containsKey(lineNumber + 1)) { // Line numbers are
+                                                                                                  // 1-based
                 Circle errorIcon = new Circle(4, Color.RED);
                 errorIcon.getStyleClass().add("error-icon");
-                Tooltip tooltip = new Tooltip(ideFeatures.getLineErrors().get(lineNumber));
+                Tooltip tooltip = new Tooltip(ideFeatures.getLineErrors().get(lineNumber + 1));
                 Tooltip.install(errorIcon, tooltip);
                 hbox.getChildren().add(errorIcon);
             }
@@ -267,7 +271,9 @@ public class UIController {
     }
 
     public void setStatusBarMessage(String message) {
-        statusBar.setText(message);
+        if (statusBar != null) {
+            statusBar.setText(message);
+        }
     }
 
     public void refreshFileExplorer(File directory) {
@@ -319,8 +325,6 @@ public class UIController {
 
         if (stream == null) {
             System.err.println("Error: Icon resource not found at path: " + path);
-            // Return a placeholder or default icon instead of crashing
-            // For now, returning an empty ImageView, but a default icon would be better
             return new ImageView();
         }
 
@@ -329,6 +333,10 @@ public class UIController {
         imageView.setFitWidth(size);
         imageView.setFitHeight(size);
         return imageView;
+    }
+
+    public String getFindPopupText() {
+        return findField.getText();
     }
 
     public String getReplaceFindPopupText() {
@@ -346,7 +354,7 @@ public class UIController {
     public void highlightLine(int lineNumber) {
         CodeArea codeArea = getCurrentCodeArea();
         if (codeArea != null && lineNumber >= 0 && lineNumber < codeArea.getParagraphs().size()) {
-            codeArea.setParagraphStyle(lineNumber, Collections.singleton("current-line"));
+            codeArea.setParagraphStyle(lineNumber, Collections.singleton("current-line-highlight"));
         }
     }
 

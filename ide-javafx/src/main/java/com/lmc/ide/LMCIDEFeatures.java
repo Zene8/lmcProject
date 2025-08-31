@@ -142,6 +142,9 @@ public class LMCIDEFeatures {
 
     private void setupErrorHighlighting(CodeArea codeArea) {
         codeArea.textProperty().addListener((obs, oldText, newText) -> {
+            // FIX: Clear previous errors before re-parsing
+            lineErrors.clear();
+
             if (!errorHighlightingEnabled) {
                 clearParagraphStyles(codeArea);
                 return;
@@ -151,10 +154,10 @@ public class LMCIDEFeatures {
                 lmcParser.parse(newText);
             } catch (LMCParser.LMCParseException e) {
                 Platform.runLater(() -> {
-                    int lineNumber = e.getLineNumber() - 1;
+                    int lineNumber = e.getLineNumber() - 1; // Convert to 0-based index for CodeArea
                     if (lineNumber >= 0 && lineNumber < codeArea.getParagraphs().size()) {
                         codeArea.setParagraphStyle(lineNumber, Collections.singleton("error-line"));
-                        lineErrors.put(lineNumber, e.getMessage());
+                        lineErrors.put(e.getLineNumber(), e.getMessage()); // Store with 1-based line number for UI
                     }
                 });
             }
@@ -238,7 +241,7 @@ public class LMCIDEFeatures {
     private int findLabelDefinition(CodeArea codeArea, String label) {
         String[] lines = codeArea.getText().split("\r?\n");
         for (int i = 0; i < lines.length; i++) {
-            if (lines[i].trim().startsWith(label.toUpperCase() + ":"))
+            if (lines[i].trim().startsWith(label.toUpperCase() + " ")) // LMC labels are followed by a space
                 return i;
         }
         return -1;
@@ -308,4 +311,75 @@ public class LMCIDEFeatures {
     public Map<Integer, String> getLineErrors() {
         return lineErrors;
     }
+
+    // --- START: NEWLY IMPLEMENTED FIND/REPLACE METHODS ---
+
+    public void findNext(String textToFind, boolean forward) {
+        CodeArea codeArea = uiController.getCurrentCodeArea();
+        if (codeArea == null || textToFind == null || textToFind.isEmpty()) {
+            return;
+        }
+        String content = codeArea.getText();
+        int caretPos = codeArea.getCaretPosition();
+        int nextMatch = -1;
+
+        if (forward) {
+            nextMatch = content.indexOf(textToFind, caretPos);
+            // Wrap around search if not found from caret position
+            if (nextMatch == -1) {
+                nextMatch = content.indexOf(textToFind, 0);
+            }
+        } else { // Searching backward
+            nextMatch = content.lastIndexOf(textToFind, caretPos - 1);
+            // Wrap around search if not found from caret position
+            if (nextMatch == -1) {
+                nextMatch = content.lastIndexOf(textToFind, content.length());
+            }
+        }
+
+        if (nextMatch != -1) {
+            codeArea.selectRange(nextMatch, nextMatch + textToFind.length());
+            codeArea.requestFollowCaret();
+        } else {
+            uiController.setStatusBarMessage("'" + textToFind + "' not found.");
+        }
+    }
+
+    public void replaceNext() {
+        CodeArea codeArea = uiController.getCurrentCodeArea();
+        if (codeArea == null)
+            return;
+
+        String textToFind = uiController.getReplaceFindPopupText();
+        String replacementText = uiController.getReplaceWithPopupText();
+
+        if (textToFind == null || textToFind.isEmpty())
+            return;
+
+        // If the selected text matches, replace it and find the next one
+        if (codeArea.getSelectedText().equalsIgnoreCase(textToFind)) {
+            codeArea.replaceSelection(replacementText);
+        }
+
+        // Find the next occurrence
+        findNext(textToFind, true);
+    }
+
+    public void replaceAll() {
+        CodeArea codeArea = uiController.getCurrentCodeArea();
+        if (codeArea == null)
+            return;
+
+        String textToFind = uiController.getReplaceFindPopupText();
+        String replacementText = uiController.getReplaceWithPopupText();
+
+        if (textToFind == null || textToFind.isEmpty())
+            return;
+
+        String newText = codeArea.getText().replaceAll("(?i)" + textToFind, replacementText);
+        codeArea.replaceText(newText);
+        uiController.setStatusBarMessage("Replaced all occurrences.");
+    }
+
+    // --- END: NEWLY IMPLEMENTED FIND/REPLACE METHODS ---
 }

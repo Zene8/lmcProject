@@ -28,7 +28,7 @@ public class LMCExecutor {
     private Timeline executionTimeline;
     private VBox[] memoryCellBoxes = new VBox[100];
     private LMCParser.AssembledCode currentAssembledCode;
-    private int lastHighlightedLine = -1; // Added to track the last highlighted line
+    private int lastHighlightedLine = -1;
 
     public LMCExecutor(LMCInterpreter interpreter, LMCParser parser, UIController uiController) {
         this.interpreter = interpreter;
@@ -56,7 +56,7 @@ public class LMCExecutor {
         this.resetButton = reset;
         stopButton.setDisable(true);
         stepButton.setDisable(true);
-        resetButton.setDisable(true);
+        resetButton.setDisable(true); // FIX: Set initial state
     }
 
     public void setSpeedControls(ToggleButton toggle, Slider slider) {
@@ -87,12 +87,14 @@ public class LMCExecutor {
         startButton.setDisable(true);
         stopButton.setDisable(false);
         stepButton.setDisable(true);
+        resetButton.setDisable(false); // Can reset while running
         speedModeToggle.setDisable(true);
         if (speedSlider != null)
             speedSlider.setDisable(true);
         console.clear();
         errorListView.getItems().clear();
-        uiController.setStatusBarMessage("Running...");
+        uiController.setStatusBarMessage("Running..."); // FIX: Add running status
+
         String lmcCode = currentCodeArea.getText();
 
         try {
@@ -129,40 +131,39 @@ public class LMCExecutor {
             executionTimeline.stop();
         if (interpreter != null)
             interpreter.stop();
-        stopButton.setDisable(true);
-        startButton.setDisable(false);
-        speedModeToggle.setDisable(false);
-        if (speedSlider != null)
-            speedSlider.setDisable(!speedModeToggle.isSelected());
-        stepButton.setDisable(true);
-        finishExecution(LMCInterpreter.ExecutionState.STOPPED, "Stopped by user."); // Call finishExecution to clean up
+
+        finishExecution(LMCInterpreter.ExecutionState.STOPPED, "Stopped by user.");
     }
 
     public void executeStep() {
         LMCInterpreter.ExecutionState state = interpreter.step();
+
+        // Handle states that pause execution
         if (state == LMCInterpreter.ExecutionState.AWAITING_INPUT
                 || state == LMCInterpreter.ExecutionState.BREAKPOINT_HIT) {
             if (executionTimeline != null)
                 executionTimeline.pause();
+
             if (state == LMCInterpreter.ExecutionState.BREAKPOINT_HIT) {
                 finishExecution(state, "Breakpoint hit at address " + interpreter.getProgramCounter());
             } else { // Awaiting input
-                 finishExecution(state, "Program paused, awaiting input.");
+                finishExecution(state, "Program paused, awaiting input.");
             }
-            stepButton.setDisable(false);
             return;
         }
 
+        // Handle states that terminate execution
         if (state != LMCInterpreter.ExecutionState.RUNNING) {
             finishExecution(state, interpreter.getErrorMessage());
-        } else {
+        } else { // Continue running
             updateMemoryVisualizer(interpreter.getMemory(), interpreter.getLastAccessedAddress(),
                     interpreter.getAssembledCode());
-            // Highlight current line in slow mode
+
             if (speedModeToggle.isSelected()) {
                 int currentPC = interpreter.getProgramCounter();
                 if (currentAssembledCode != null && currentAssembledCode.addressToLineMap.containsKey(currentPC)) {
-                    int currentLine = currentAssembledCode.addressToLineMap.get(currentPC);
+                    int currentLine = currentAssembledCode.addressToLineMap.get(currentPC) - 1; // Adjust for 0-based
+                                                                                                // index
                     uiController.clearLineHighlight(lastHighlightedLine);
                     uiController.highlightLine(currentLine);
                     lastHighlightedLine = currentLine;
@@ -172,14 +173,23 @@ public class LMCExecutor {
     }
 
     private void finishExecution(LMCInterpreter.ExecutionState finalState, String message) {
-        if (executionTimeline != null)
+        if (executionTimeline != null) {
             executionTimeline.stop();
-        stopButton.setDisable(true);
+        }
+
+        // Update button states based on the final state
         startButton.setDisable(false);
+        stopButton.setDisable(true);
+        resetButton.setDisable(false);
         speedModeToggle.setDisable(false);
-        if (speedSlider != null)
+        if (speedSlider != null) {
             speedSlider.setDisable(!speedModeToggle.isSelected());
-        stepButton.setDisable(true);
+        }
+
+        // Only enable step button if paused
+        stepButton.setDisable(!(finalState == LMCInterpreter.ExecutionState.AWAITING_INPUT
+                || finalState == LMCInterpreter.ExecutionState.BREAKPOINT_HIT));
+
         uiController.clearLineHighlight(lastHighlightedLine);
         lastHighlightedLine = -1;
 
@@ -187,23 +197,25 @@ public class LMCExecutor {
             case HALTED:
                 console.appendText("\n--- Program Halted ---\n" + interpreter.getOutput());
                 uiController.setStatusBarMessage("Program Halted.");
+                resetButton.setDisable(false);
                 break;
             case STOPPED:
                 console.appendText("\n--- Program Stopped by User ---");
                 uiController.setStatusBarMessage("Program Stopped.");
+                resetButton.setDisable(false);
                 break;
             case ERROR:
-                console.appendText("\n--- Runtime Error ---" + message);
-                errorListView.getItems().add("Runtime Error: " + message);
-                bottomTabPane.getSelectionModel().select(1); // Assuming error tab is the second tab
-                uiController.setStatusBarMessage("Runtime Error.");
+                console.appendText("\n--- Error ---\n" + message); // FIX: Added newline
+                errorListView.getItems().add("Error: " + message);
+                bottomTabPane.getSelectionModel().select(1);
+                uiController.setStatusBarMessage("Error.");
+                resetButton.setDisable(false);
                 break;
             case AWAITING_INPUT:
             case BREAKPOINT_HIT:
                 console.appendText("\n--- Program Paused ---\n" + message);
-                stepButton.setDisable(false);
-                resetButton.setDisable(false);
-                // Status message already set in executeStep()
+                uiController.setStatusBarMessage("Paused: " + message);
+                // Step and reset buttons are already handled above
                 break;
             default:
                 uiController.setStatusBarMessage("Ready.");
@@ -221,6 +233,10 @@ public class LMCExecutor {
         stopButton.setDisable(true);
         stepButton.setDisable(true);
         resetButton.setDisable(true);
+        if (lastHighlightedLine != -1) {
+            uiController.clearLineHighlight(lastHighlightedLine);
+            lastHighlightedLine = -1;
+        }
     }
 
     private InputProvider createInputProvider() {
@@ -260,9 +276,18 @@ public class LMCExecutor {
             int memoryUsed = 0;
             for (int i = 0; i < 100; i++) {
                 VBox cellBox = memoryCellBoxes[i];
+                cellBox.getStyleClass().removeAll("memory-cell-highlight", "memory-cell-pc");
+
                 ((Label) cellBox.getChildren().get(0)).setText(String.format("%03d", memory[i]));
                 if (memory[i] != 0)
                     memoryUsed++;
+
+                if (i == highlightedAddress) {
+                    cellBox.getStyleClass().add("memory-cell-highlight");
+                }
+                if (i == interpreter.getProgramCounter()) {
+                    cellBox.getStyleClass().add("memory-cell-pc");
+                }
 
                 cellBox.getStyleClass().remove("memory-cell-instruction");
                 String instructionText = "DAT";
@@ -288,7 +313,7 @@ public class LMCExecutor {
     }
 
     public void updateMemoryVisualizer(Map<Integer, Integer> memoryMap, int highlightedAddress,
-                                       LMCParser.AssembledCode assembledCode) {
+            LMCParser.AssembledCode assembledCode) {
         int[] memArray = new int[100];
         memoryMap.forEach((addr, val) -> {
             if (addr >= 0 && addr < 100)

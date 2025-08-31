@@ -6,9 +6,6 @@ import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.CheckMenuItem;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyCodeCombination;
-import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 import org.fxmisc.richtext.CodeArea;
@@ -156,7 +153,8 @@ public class App extends Application {
             ideFeatures.setErrorHighlightingEnabled(enabled);
         });
 
-        viewMenu.getItems().addAll(toggleTools, toggleMemory, toggleTheme, new SeparatorMenuItem(), toggleAutocorrect, toggleAutoFormat, toggleErrorHighlighting);
+        viewMenu.getItems().addAll(toggleTools, toggleMemory, toggleTheme, new SeparatorMenuItem(), toggleAutocorrect,
+                toggleAutoFormat, toggleErrorHighlighting);
 
         // Code Menu
         Menu codeMenu = new Menu("Code");
@@ -216,7 +214,8 @@ public class App extends Application {
             }
         });
 
-        insertSnippet.getItems().addAll(snippetInputOutput, snippetAddTwoNumbers, snippetDataDefinition, snippetMultiplication, snippetDivision, snippetConditionalBranching);
+        insertSnippet.getItems().addAll(snippetInputOutput, snippetAddTwoNumbers, snippetDataDefinition,
+                snippetMultiplication, snippetDivision, snippetConditionalBranching);
         codeMenu.getItems().addAll(insertSnippet);
 
         menuBar.getMenus().addAll(fileMenu, editMenu, codeMenu, viewMenu);
@@ -237,9 +236,10 @@ public class App extends Application {
         startButton.setOnAction(e -> lmcExecutor.runLMC());
         stopButton.setOnAction(e -> lmcExecutor.stopLMC());
         stepButton.setOnAction(e -> lmcExecutor.executeStep());
-        resetButton.setOnAction(e -> lmcExecutor.resetProgram());
+        resetButton.setOnAction(e -> lmcExecutor.resetProgram()); // FIX: Point to executor
 
         // Pass controls to LMCExecutor
+        // FIX: Added the missing resetButton argument
         lmcExecutor.setControls(startButton, stopButton, stepButton, resetButton);
 
         // Speed controls
@@ -250,12 +250,15 @@ public class App extends Application {
         speedSlider.setShowTickMarks(true);
         speedSlider.setMajorTickUnit(100);
 
+        speedSlider.disableProperty().bind(speedModeToggle.selectedProperty().not());
+
         lmcExecutor.setSpeedControls(speedModeToggle, speedSlider);
 
         HBox controlPanel = new HBox(10); // Spacing of 10
         controlPanel.setAlignment(Pos.CENTER_RIGHT);
         controlPanel.setPadding(new Insets(5));
-        controlPanel.getChildren().addAll(startButton, stopButton, stepButton, resetButton, speedModeToggle, speedSlider);
+        controlPanel.getChildren().addAll(startButton, stopButton, stepButton, resetButton, speedModeToggle,
+                speedSlider);
         return controlPanel;
     }
 
@@ -274,20 +277,4 @@ public class App extends Application {
             scene.getStylesheets().add(resource.toExternalForm());
         }
     }
-
-    private void setupHotkeys(Scene scene) {
-        // File
-        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN),
-                fileManager::newFile);
-        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.O, KeyCombination.CONTROL_DOWN),
-                fileManager::openProject);
-        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN),
-                fileManager::saveFile);
-        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.Q, KeyCombination.CONTROL_DOWN),
-                fileManager::closeCurrentTab);
-
-        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN),
-                uiController::toggleFindPopup);
-    }
 }
-        
