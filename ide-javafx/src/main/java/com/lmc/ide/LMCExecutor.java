@@ -19,7 +19,7 @@ public class LMCExecutor {
     private final LMCParser parser;
     private final UIController uiController;
     private LMCIDEFeatures ideFeatures;
-    private TextArea console;
+    private TextArea consoleOutputArea; // Renamed from console
     private ListView<String> errorListView;
     private TabPane bottomTabPane;
     private Button startButton, stopButton, stepButton, resetButton;
@@ -40,8 +40,8 @@ public class LMCExecutor {
         this.ideFeatures = features;
     }
 
-    public void setConsole(TextArea console) {
-        this.console = console;
+    public void setConsole(TextArea consoleOutputArea) {
+        this.consoleOutputArea = consoleOutputArea;
     }
 
     public void setErrorListView(ListView<String> listView, TabPane tabPane) {
@@ -89,9 +89,8 @@ public class LMCExecutor {
         stepButton.setDisable(true);
         resetButton.setDisable(false); // Can reset while running
         speedModeToggle.setDisable(true);
-        if (speedSlider != null)
-            speedSlider.setDisable(true);
-        console.clear();
+        // speedSlider.setDisable(true); // Removed: Handled by binding
+        consoleOutputArea.clear();
         errorListView.getItems().clear();
         uiController.setStatusBarMessage("Running..."); // FIX: Add running status
 
@@ -182,9 +181,7 @@ public class LMCExecutor {
         stopButton.setDisable(true);
         resetButton.setDisable(false);
         speedModeToggle.setDisable(false);
-        if (speedSlider != null) {
-            speedSlider.setDisable(!speedModeToggle.isSelected());
-        }
+        // speedSlider.setDisable(!speedModeToggle.isSelected()); // Removed: Handled by binding
 
         // Only enable step button if paused
         stepButton.setDisable(!(finalState == LMCInterpreter.ExecutionState.AWAITING_INPUT
@@ -195,17 +192,17 @@ public class LMCExecutor {
 
         switch (finalState) {
             case HALTED:
-                console.appendText("\n--- Program Halted ---\n" + interpreter.getOutput());
+                consoleOutputArea.appendText("\n--- Program Halted ---\n" + interpreter.getOutput());
                 uiController.setStatusBarMessage("Program Halted.");
                 resetButton.setDisable(false);
                 break;
             case STOPPED:
-                console.appendText("\n--- Program Stopped by User ---");
+                consoleOutputArea.appendText("\n--- Program Stopped by User ---");
                 uiController.setStatusBarMessage("Program Stopped.");
                 resetButton.setDisable(false);
                 break;
             case ERROR:
-                console.appendText("\n--- Error ---\n" + message); // FIX: Added newline
+                consoleOutputArea.appendText("\n--- Error ---\n" + message); // FIX: Added newline
                 errorListView.getItems().add("Error: " + message);
                 bottomTabPane.getSelectionModel().select(1);
                 uiController.setStatusBarMessage("Error.");
@@ -213,7 +210,7 @@ public class LMCExecutor {
                 break;
             case AWAITING_INPUT:
             case BREAKPOINT_HIT:
-                console.appendText("\n--- Program Paused ---\n" + message);
+                consoleOutputArea.appendText("\n--- Program Paused ---" + message);
                 uiController.setStatusBarMessage("Paused: " + message);
                 // Step and reset buttons are already handled above
                 break;
@@ -226,7 +223,7 @@ public class LMCExecutor {
     public void resetProgram() {
         interpreter.resetProgram();
         updateMemoryVisualizer(interpreter.getMemory(), -1, interpreter.getAssembledCode());
-        console.clear();
+        consoleOutputArea.clear();
         errorListView.getItems().clear();
         uiController.setStatusBarMessage("Ready.");
         startButton.setDisable(false);
@@ -243,10 +240,10 @@ public class LMCExecutor {
         return () -> {
             CompletableFuture<Integer> future = new CompletableFuture<>();
             Platform.runLater(() -> {
-                console.appendText("\nEnter input: ");
-                console.setEditable(true);
-                console.requestFocus();
-                console.end();
+                consoleOutputArea.appendText("\nEnter input: ");
+                consoleOutputArea.setEditable(true);
+                consoleOutputArea.requestFocus();
+                consoleOutputArea.end();
                 ideFeatures.setPendingInputRequest(future);
             });
             return future;

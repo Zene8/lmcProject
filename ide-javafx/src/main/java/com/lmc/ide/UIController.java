@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.prefs.Preferences;
 
 public class UIController {
 
@@ -33,11 +34,14 @@ public class UIController {
     private TabPane editorTabPane;
     private VBox leftSidebar, rightSidebar;
     private BorderPane console;
+    private TextArea consoleOutputArea; // New member for console output
     private TreeView<File> fileExplorer;
 
     private FileManager fileManager;
     private LMCExecutor lmcExecutor;
     private LMCIDEFeatures ideFeatures;
+    private AIModelManager aiModelManager;
+    private Preferences prefs;
 
     private Label memoryUsageLabel; // This label will be part of the memory mailboxes view
     private VBox memoryMailboxesView; // New member for memory mailboxes
@@ -65,6 +69,14 @@ public class UIController {
 
     public void setIdeFeatures(LMCIDEFeatures ideFeatures) {
         this.ideFeatures = ideFeatures;
+    }
+
+    public void setAiModelManager(AIModelManager aiModelManager) {
+        this.aiModelManager = aiModelManager;
+    }
+
+    public void setPrefs(Preferences prefs) {
+        this.prefs = prefs;
     }
 
     public void initComponents() {
@@ -104,6 +116,155 @@ public class UIController {
         editorStackPane.getChildren().addAll(findPopup, replacePopup);
         StackPane.setAlignment(findPopup, Pos.TOP_RIGHT);
         StackPane.setAlignment(replacePopup, Pos.TOP_RIGHT);
+
+        MenuBar menuBar = createMenuBar();
+        root.setTop(menuBar);
+    }
+
+    private MenuBar createMenuBar() {
+        MenuBar menuBar = new MenuBar();
+
+        // File Menu
+        Menu fileMenu = new Menu("File");
+        MenuItem newFile = new MenuItem("New", createIcon("insert_drive_file.svg"));
+        newFile.setOnAction(e -> fileManager.newFile());
+        MenuItem openProject = new MenuItem("Open", createIcon("folder_open.svg"));
+        openProject.setOnAction(e -> fileManager.openProject());
+        MenuItem saveFile = new MenuItem("Save", createIcon("save.svg"));
+        saveFile.setOnAction(e -> fileManager.saveFile());
+        MenuItem closeTab = new MenuItem("Close Tab");
+        closeTab.setOnAction(e -> fileManager.closeCurrentTab());
+        fileMenu.getItems().addAll(newFile, openProject, saveFile, closeTab);
+
+        // Edit Menu
+        Menu editMenu = new Menu("Edit");
+        MenuItem undo = new MenuItem("Undo");
+        undo.setOnAction(e -> getCurrentCodeArea().undo());
+        MenuItem redo = new MenuItem("Redo");
+        redo.setOnAction(e -> getCurrentCodeArea().redo());
+        MenuItem find = new MenuItem("Find", createIcon("search.svg"));
+        find.setOnAction(e -> toggleFindPopup());
+        MenuItem replace = new MenuItem("Replace", createIcon("find_replace.svg"));
+        replace.setOnAction(e -> toggleReplacePopup());
+        MenuItem formatCode = new MenuItem("Format Code");
+        formatCode.setOnAction(e -> {
+            CodeArea currentCodeArea = getCurrentCodeArea();
+            if (currentCodeArea != null) {
+                String formattedText = LMCFormatter.format(currentCodeArea.getText());
+                currentCodeArea.replaceText(formattedText);
+            }
+        });
+        editMenu.getItems().addAll(undo, redo, find, replace, formatCode);
+
+        // View Menu
+        Menu viewMenu = new Menu("View");
+        CheckMenuItem toggleTools = new CheckMenuItem("Toggle Tools Sidebar");
+        toggleTools.setSelected(true);
+        toggleTools.setOnAction(e -> toggleToolsSidebar());
+        CheckMenuItem toggleLeft = new CheckMenuItem("Toggle File Explorer");
+        toggleLeft.setSelected(true);
+        toggleLeft.setOnAction(e -> toggleLeftSidebar());
+        CheckMenuItem toggleConsole = new CheckMenuItem("Toggle Console View");
+        toggleConsole.setSelected(true);
+        toggleConsole.setOnAction(e -> toggleConsoleView());
+        CheckMenuItem maximizeEditor = new CheckMenuItem("Maximize Editor");
+        maximizeEditor.setSelected(false);
+        maximizeEditor.setOnAction(e -> toggleEditorMaximize());
+        MenuItem toggleTheme = new MenuItem("Toggle Theme");
+        toggleTheme.setOnAction(e -> toggleTheme());
+
+        // Feature Toggles
+        CheckMenuItem toggleAutocorrect = new CheckMenuItem("Autocorrect");
+        toggleAutocorrect.setSelected(prefs.getBoolean("autocorrectEnabled", true));
+        toggleAutocorrect.setOnAction(e -> {
+            boolean enabled = toggleAutocorrect.isSelected();
+            prefs.putBoolean("autocorrectEnabled", enabled);
+            ideFeatures.setAutocorrectEnabled(enabled);
+        });
+
+        CheckMenuItem toggleAutoFormat = new CheckMenuItem("Auto Formatting on Paste");
+        toggleAutoFormat.setSelected(prefs.getBoolean("autoFormattingEnabled", true));
+        toggleAutoFormat.setOnAction(e -> {
+            boolean enabled = toggleAutoFormat.isSelected();
+            prefs.putBoolean("autoFormattingEnabled", enabled);
+            ideFeatures.setAutoFormattingEnabled(enabled);
+        });
+
+        CheckMenuItem toggleErrorHighlighting = new CheckMenuItem("Error Highlighting");
+        toggleErrorHighlighting.setSelected(prefs.getBoolean("errorHighlightingEnabled", true));
+        toggleErrorHighlighting.setOnAction(e -> {
+            boolean enabled = toggleErrorHighlighting.isSelected();
+            prefs.putBoolean("errorHighlightingEnabled", enabled);
+            ideFeatures.setErrorHighlightingEnabled(enabled);
+        });
+
+        viewMenu.getItems().addAll(toggleTools, toggleLeft, toggleConsole, maximizeEditor, toggleTheme,
+                new SeparatorMenuItem(), toggleAutocorrect, toggleAutoFormat, toggleErrorHighlighting);
+
+        // Code Menu
+        Menu codeMenu = new Menu("Code");
+        Menu insertSnippet = new Menu("Insert Snippet");
+
+        MenuItem snippetInputOutput = new MenuItem("Input/Output Loop");
+        snippetInputOutput.setOnAction(e -> {
+            CodeArea currentCodeArea = getCurrentCodeArea();
+            if (currentCodeArea != null) {
+                String snippet = "        INP\n        STA LOOP_VAR\nLOOP    LDA LOOP_VAR\n        OUT\n        BRZ END\n        INP\n        STA LOOP_VAR\n        BRA LOOP\nEND     HLT\nLOOP_VAR DAT 0\n";
+                currentCodeArea.insertText(currentCodeArea.getCaretPosition(), snippet);
+            }
+        });
+
+        MenuItem snippetAddTwoNumbers = new MenuItem("Add Two Numbers");
+        snippetAddTwoNumbers.setOnAction(e -> {
+            CodeArea currentCodeArea = getCurrentCodeArea();
+            if (currentCodeArea != null) {
+                String snippet = "        INP\n        STA NUM1\n        INP\n        STA NUM2\n        LDA NUM1\n        ADD NUM2\n        OUT\n        HLT\nNUM1    DAT 0\nNUM2    DAT 0\n";
+                currentCodeArea.insertText(currentCodeArea.getCaretPosition(), snippet);
+            }
+        });
+
+        MenuItem snippetDataDefinition = new MenuItem("Data Definition");
+        snippetDataDefinition.setOnAction(e -> {
+            CodeArea currentCodeArea = getCurrentCodeArea();
+            if (currentCodeArea != null) {
+                String snippet = "MY_DATA DAT 10\nANOTHER_DATA DAT 20\n";
+                currentCodeArea.insertText(currentCodeArea.getCaretPosition(), snippet);
+            }
+        });
+
+        MenuItem snippetMultiplication = new MenuItem("Multiplication");
+        snippetMultiplication.setOnAction(e -> {
+            CodeArea currentCodeArea = getCurrentCodeArea();
+            if (currentCodeArea != null) {
+                String snippet = "        INP         // Input Multiplicand (A)\n        STA MULTIPLICAND\n        INP         // Input Multiplier (B)\n        STA MULTIPLIER\n        LDA ZERO    // Initialize Result to 0\n        STA RESULT\n\nLOOP    LDA MULTIPLIER\n        BRZ END_LOOP // If Multiplier is 0, done\n        SUB ONE     // Decrement Multiplier\n        STA MULTIPLIER\n        LDA RESULT\n        ADD MULTIPLICAND // Add Multiplicand to Result\n        STA RESULT\n        BRA LOOP\n\nEND_LOOP LDA RESULT\n        OUT         // Output Result\n        HLT\n\nMULTIPLICAND DAT 0\nMULTIPLIER   DAT 0\nRESULT       DAT 0\nZERO         DAT 0\nONE          DAT 1\n";
+                currentCodeArea.insertText(currentCodeArea.getCaretPosition(), snippet);
+            }
+        });
+
+        MenuItem snippetDivision = new MenuItem("Division");
+        snippetDivision.setOnAction(e -> {
+            CodeArea currentCodeArea = getCurrentCodeArea();
+            if (currentCodeArea != null) {
+                String snippet = "        INP         // Input Dividend (A)\n        STA DIVIDEND\n        INP         // Input Divisor (B)\n        STA DIVISOR\n        LDA ZERO    // Initialize Quotient to 0\n        STA QUOTIENT\n\nLOOP    LDA DIVIDEND\n        SUB DIVISOR // Dividend - Divisor\n        BRP CONTINUE // If result >= 0, continue\n        BRA END_LOOP // If result < 0, done\n\nCONTINUE STA DIVIDEND // Store new Dividend\n        LDA QUOTIENT\n        ADD ONE     // Increment Quotient\n        STA QUOTIENT\n        BRA LOOP\n\nEND_LOOP LDA QUOTIENT\n        OUT         // Output Quotient\n        HLT\n\nDIVIDEND DAT 0\nDIVISOR  DAT 0\nQUOTIENT DAT 0\nZERO     DAT 0\nONE      DAT 1\n";
+                currentCodeArea.insertText(currentCodeArea.getCaretPosition(), snippet);
+            }
+        });
+
+        MenuItem snippetConditionalBranching = new MenuItem("Conditional Branching (IF-ELSE)");
+        snippetConditionalBranching.setOnAction(e -> {
+            CodeArea currentCodeArea = getCurrentCodeArea();
+            if (currentCodeArea != null) {
+                String snippet = "        INP         // Input a number\n        STA NUM\n        LDA NUM\n        BRZ IS_ZERO // If NUM == 0, branch to IS_ZERO\n\n        // ELSE block (NUM is not zero)\n        LDA NUM\n        OUT         // Output NUM\n        BRA END_IF\n\nIS_ZERO LDA ZERO\n        OUT         // Output 0\n\nEND_IF  HLT\n\nNUM     DAT 0\nZERO    DAT 0\n";
+                currentCodeArea.insertText(currentCodeArea.getCaretPosition(), snippet);
+            }
+        });
+
+        insertSnippet.getItems().addAll(snippetInputOutput, snippetAddTwoNumbers, snippetDataDefinition,
+                snippetMultiplication, snippetDivision, snippetConditionalBranching);
+        codeMenu.getItems().addAll(insertSnippet);
+
+        menuBar.getMenus().addAll(fileMenu, editMenu, codeMenu, viewMenu, createAIModelMenu());
+        return menuBar;
     }
 
     private VBox createLeftSidebar() {
@@ -188,12 +349,20 @@ public class UIController {
     private BorderPane createConsoleView() {
         BorderPane consolePane = new BorderPane();
         consolePane.getStyleClass().add("console");
-        // This will be the actual console for I/O and errors
-        // For now, it's empty, but will be populated later.
+
+        consoleOutputArea = new TextArea();
+        consoleOutputArea.setEditable(false);
+        consoleOutputArea.getStyleClass().add("console-output-area");
+        consolePane.setCenter(consoleOutputArea);
+
         TitledPane consoleTitlePane = new TitledPane("Console", consolePane);
         consoleTitlePane.setCollapsible(true);
         consoleTitlePane.setExpanded(true);
         return consolePane;
+    }
+
+    public TextArea getConsoleOutputArea() {
+        return consoleOutputArea;
     }
 
     private VBox createMemoryMailboxesView() {
@@ -201,7 +370,8 @@ public class UIController {
         mailboxesView.getStyleClass().add("memory-mailboxes-view");
         // memoryUsageLabel is now initialized in the constructor
         mailboxesView.getChildren().add(memoryUsageLabel);
-        // Add actual memory mailboxes display here later
+        // Add actual memory mailboxes display here
+        mailboxesView.getChildren().add(lmcExecutor.createMemoryVisualizer());
         return mailboxesView;
     }
 
@@ -480,5 +650,43 @@ public class UIController {
         if (codeArea != null && lineNumber >= 0 && lineNumber < codeArea.getParagraphs().size()) {
             codeArea.setParagraphStyle(lineNumber, Collections.emptyList());
         }
+    }
+
+    private void toggleTheme() {
+        String currentTheme = prefs.get("theme", "dark-mode");
+        String newTheme = "dark-mode".equals(currentTheme) ? "light-mode" : "dark-mode";
+        prefs.put("theme", newTheme);
+        applyTheme(newTheme);
+    }
+
+    private Menu createAIModelMenu() {
+        Menu aiModelMenu = new Menu("AI Model");
+
+        Menu localModelsMenu = new Menu("Local Models");
+        ToggleGroup localModelToggleGroup = new ToggleGroup();
+        for (String model : aiModelManager.getLocalModels()) {
+            RadioMenuItem item = new RadioMenuItem(model);
+            item.setToggleGroup(localModelToggleGroup);
+            if (model.equals(aiModelManager.getSelectedModel())) {
+                item.setSelected(true);
+            }
+            item.setOnAction(e -> aiModelManager.setSelectedModel(model));
+            localModelsMenu.getItems().add(item);
+        }
+
+        Menu cloudModelsMenu = new Menu("Cloud Models");
+        ToggleGroup cloudModelToggleGroup = new ToggleGroup();
+        for (String model : aiModelManager.getCloudModels()) {
+            RadioMenuItem item = new RadioMenuItem(model);
+            item.setToggleGroup(cloudModelToggleGroup);
+            if (model.equals(aiModelManager.getSelectedModel())) {
+                item.setSelected(true);
+            }
+            item.setOnAction(e -> aiModelManager.setSelectedModel(model));
+            cloudModelsMenu.getItems().add(item);
+        }
+
+        aiModelMenu.getItems().addAll(localModelsMenu, cloudModelsMenu);
+        return aiModelMenu;
     }
 }

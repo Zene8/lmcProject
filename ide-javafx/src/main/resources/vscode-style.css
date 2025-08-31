@@ -1,71 +1,70 @@
 /* === Base Styles & Variables === */
 :root {
-    -font-main: "Segoe UI", Arial, sans-serif;
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+    -fx-font-size: 14px;
 
-    /* Default Theme (Light) Colors */
-    --lmc-bg-primary: #F8F8F8; /* Main background */
-    --lmc-bg-secondary: #FFFFFF; /* Content areas, editor background */
-    --lmc-bg-tertiary: #F0F0F0; /* Headers, toolbars, selected tab background */
-    --lmc-text-primary: #000000; /* Black text */
-    --lmc-text-secondary: #555555; /* Secondary text, less important info */
-    --lmc-border-primary: #CCCCCC; /* Grey lines for separation */
-    --lmc-accent-primary: #87CEEB; /* Light Sky Blue */
-    --lmc-accent-secondary: #6495ED; /* Cornflower Blue (slightly darker sky blue) */
-    --lmc-error: #D32F2F; /* Red */
+    /* Light Theme Colors */
+    -fx-background: #FFFFFF; /* Main background */
+    -fx-control-inner-background: #F0F2F5; /* Content areas, editor background */
+    -fx-color: #E1E4E8; /* Headers, toolbars, selected tab background */
+    -fx-text-base-color: #24292E; /* Almost black text */
+    -fx-text-fill: #24292E; /* Almost black text (for labels, etc.) */
+    -fx-light-text-color: #586069; /* Gray text */
+    -fx-border-color: #D1D5DA; /* Light gray lines for separation */
+    -fx-accent: #0366D6; /* Blue accent */
+    -fx-accent-hover: #005CC5; /* Darker blue accent */
+    -fx-error-color: #D73A49; /* Red */
 }
 
 .root.dark-mode {
-    /* Dark Theme Colors - Overrides Light Theme */
-    --lmc-bg-primary: #1A1A2E; /* Dark Blue/Black */
-    --lmc-bg-secondary: #16213E; /* Slightly darker blue */
-    --lmc-bg-tertiary: #0F3460; /* Even darker blue */
-    --lmc-text-primary: #FFFFFF; /* White text */
-    --lmc-text-secondary: #A0A0A0; /* Medium light grey */
-    --lmc-border-primary: #3C3C3C; /* Grey lines for separation */
-    --lmc-accent-primary: #007ACC; /* Ocean Blue (VS Code Blue) */
-    --lmc-accent-secondary: #005A9E; /* Darker Ocean Blue */
-    --lmc-error: #F44336; /* Red */
+    /* Dark Theme Colors */
+    -fx-background: #0D1117; /* Main background */
+    -fx-control-inner-background: #161B22; /* Content areas, editor background */
+    -fx-color: #1F242C; /* Headers, toolbars, selected tab background */
+    -fx-text-base-color: #C9D1D9; /* Light gray text */
+    -fx-text-fill: #C9D1D9; /* Light gray text (for labels, etc.) */
+    -fx-light-text-color: #8B949E; /* Gray text */
+    -fx-border-color: #30363D; /* Dark gray lines for separation */
+    -fx-accent: #58A6FF; /* Light blue accent */
+    -fx-accent-hover: #388BFD; /* Brighter blue accent */
+    -fx-error-color: #F85149; /* Red */
 }
 
 /* === General Theme Application === */
 .root {
-    -fx-font-family: -font-main;
-    -fx-font-size: 14px;
-    -fx-padding: 5px; /* Overall padding for the root */
-    -fx-background-color: var(--lmc-bg-primary);
-    -fx-text-fill: var(--lmc-text-primary);
+    -fx-background-color: -fx-background;
 }
 
 /* Backgrounds and Text */
 .sidebar, .console, .code-area, .tree-view, .tab-pane .tab-content-area, .titled-pane > *.content, .text-field, .find-replace-popup, .memory-mailboxes-view {
-    -fx-background-color: var(--lmc-bg-secondary);
+    -fx-background-color: -fx-control-inner-background;
 }
 
 .label, .menu-bar .label, .titled-pane > .title > .text, .tree-cell, .tab-label, .text-field {
-    -fx-text-fill: var(--lmc-text-primary);
+    -fx-text-fill: -fx-text-base-color;
 }
 
 /* Headers and Toolbars */
 .menu-bar, .tab-header-background, .titled-pane > .title, .control-panel, .toggle-button {
-    -fx-background-color: var(--lmc-bg-tertiary);
+    -fx-background-color: -fx-color;
 }
 
 /* Borders and Dividers */
 .sidebar, .console, .split-pane-divider, .titled-pane > *.content, .text-field, .find-replace-popup, .memory-mailboxes-view {
-    -fx-border-color: var(--lmc-border-primary);
+    -fx-border-color: -fx-border-color;
 }
 
 /* Accent Colors */
 .button, .slider .thumb, .tab:selected, .toggle-button:selected {
-    -fx-background-color: var(--lmc-accent-primary);
+    -fx-background-color: -fx-accent;
 }
 
 .button:hover, .menu:hover, .menu-item:hover, .menu:showing, .toggle-button:hover {
-    -fx-background-color: var(--lmc-accent-secondary);
+    -fx-background-color: -fx-accent-hover;
 }
 
 .tab:selected {
-    -fx-border-color: var(--lmc-accent-primary);
+    -fx-border-color: -fx-accent;
 }
 
 /* Specific Overrides/Refinements */
@@ -99,11 +98,11 @@
 }
 
 .tab-label {
-    -fx-text-fill: var(--lmc-text-primary);
+    -fx-text-fill: -fx-text-base-color;
 }
 
 .tab:selected .tab-label {
-    -fx-text-fill: var(--lmc-text-primary);
+    -fx-text-fill: -fx-text-base-color;
 }
 
 .titled-pane > .title {
@@ -134,31 +133,36 @@
 }
 
 .icon-button:hover {
-    -fx-background-color: var(--lmc-bg-tertiary);
+    -fx-background-color: -fx-color;
+}
+
+/* Icon color based on theme */
+.icon-button .ikonli-font-icon {
+    -fx-fill: -fx-text-base-color;
 }
 
 .code-area {
-    -fx-font-family: -font-main;
+    -fx-font-family: "Consolas", "Monaco", monospace;
 }
 
 .paragraph-box:has-caret {
-    -fx-background-color: var(--lmc-bg-tertiary);
+    -fx-background-color: -fx-color;
 }
 
 .error-icon {
-    -fx-fill: var(--lmc-error);
+    -fx-fill: -fx-error-color;
 }
 
-.current-line {
-    -fx-background-color: rgba(255, 0, 0, 0.1);
+.current-line-highlight {
+    -fx-background-color: rgba(0, 122, 204, 0.2);
 }
 
-.dark-mode .current-line {
-    -fx-background-color: rgba(255, 0, 0, 0.2);
+.dark-mode .current-line-highlight {
+    -fx-background-color: rgba(88, 166, 255, 0.2);
 }
 
 .tree-cell:selected {
-    -fx-background-color: var(--lmc-accent-primary);
+    -fx-background-color: -fx-accent;
 }
 
 .tree-cell:selected .text {
@@ -172,19 +176,19 @@
 }
 
 .slider .track {
-    -fx-background-color: var(--lmc-border-primary);
+    -fx-background-color: -fx-border-color;
     -fx-pref-height: 4px;
 }
 
 .slider .thumb {
-    -fx-background-color: var(--lmc-accent-primary);
+    -fx-background-color: -fx-accent;
     -fx-background-radius: 50%;
     -fx-pref-width: 12px;
     -fx-pref-height: 12px;
 }
 
 .slider .axis {
-    -fx-tick-label-fill: var(--lmc-text-secondary);
+    -fx-tick-label-fill: -fx-light-text-color;
 }
 
 .toggle-button {
@@ -193,7 +197,7 @@
 }
 
 .status-bar {
-    -fx-background-color: var(--lmc-accent-primary);
+    -fx-background-color: -fx-accent;
     -fx-text-fill: white;
     -fx-padding: 5px 10px;
     -fx-font-size: 12px;
@@ -206,28 +210,58 @@
 }
 
 .text-field:focused, .button:focused, .toggle-button:focused {
-    -fx-border-color: var(--lmc-accent-primary);
+    -fx-border-color: -fx-accent;
     -fx-border-width: 2px;
 }
 
 .scroll-pane > .scroll-bar:vertical > .track-background,
 .scroll-pane > .scroll-bar:horizontal > .track-background {
-    -fx-background-color: var(--lmc-bg-tertiary);
+    -fx-background-color: -fx-color;
 }
 
 .scroll-pane > .scroll-bar:vertical > .thumb,
 .scroll-pane > .scroll-bar:horizontal > .thumb {
-    -fx-background-color: var(--lmc-accent-primary);
+    -fx-background-color: -fx-accent;
     -fx-background-radius: 5px;
 }
 
 .scroll-pane > .scroll-bar:vertical > .thumb:hover,
 .scroll-pane > .scroll-bar:horizontal > .thumb:hover {
-    -fx-background-color: var(--lmc-accent-secondary);
+    -fx-background-color: -fx-accent-hover;
 }
 
 .memory-mailboxes-view {
-    -fx-border-color: var(--lmc-border-primary);
+    -fx-border-color: -fx-border-color;
     -fx-border-width: 1px;
     -fx-padding: 5px;
+}
+
+.memory-cell {
+    -fx-background-color: -fx-control-inner-background;
+    -fx-border-color: -fx-border-color;
+    -fx-border-width: 1px;
+    -fx-padding: 5px;
+}
+
+.memory-cell-highlight {
+    -fx-background-color: -fx-accent;
+}
+
+.memory-cell-pc {
+    -fx-border-color: -fx-accent;
+    -fx-border-width: 2px;
+}
+
+.memory-cell-instruction {
+    -fx-font-weight: bold;
+}
+
+.memory-digit {
+    -fx-font-family: "Consolas", "Monaco", monospace;
+    -fx-font-size: 16px;
+}
+
+.memory-instruction-text {
+    -fx-font-size: 10px;
+    -fx-text-fill: -fx-light-text-color;
 }
