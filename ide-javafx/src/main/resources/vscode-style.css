@@ -4,30 +4,28 @@
     -fx-font-size: 14px;
 
     /* Light Theme Colors */
-    -fx-background: #FFFFFF; /* Main background */
-    -fx-control-inner-background: #F0F2F5; /* Content areas, editor background */
-    -fx-color: #E1E4E8; /* Headers, toolbars, selected tab background */
-    -fx-text-base-color: #24292E; /* Almost black text */
-    -fx-text-fill: #24292E; /* Almost black text (for labels, etc.) */
-    -fx-light-text-color: #586069; /* Gray text */
-    -fx-border-color: #D1D5DA; /* Light gray lines for separation */
-    -fx-accent: #0366D6; /* Blue accent */
-    -fx-accent-hover: #005CC5; /* Darker blue accent */
-    -fx-error-color: #D73A49; /* Red */
+    -fx-background: #FFFFFF;
+    -fx-control-inner-background: #F0F2F5;
+    -fx-color: #E1E4E8;
+    -fx-text-base-color: #24292E;
+    -fx-light-text-color: #586069;
+    -fx-border-color: #D1D5DA;
+    -fx-accent: #0366D6;
+    -fx-accent-hover: #005CC5;
+    -fx-error-color: #D73A49;
 }
 
 .root.dark-mode {
     /* Dark Theme Colors */
-    -fx-background: #0D1117; /* Main background */
-    -fx-control-inner-background: #161B22; /* Content areas, editor background */
-    -fx-color: #1F242C; /* Headers, toolbars, selected tab background */
-    -fx-text-base-color: #C9D1D9; /* Light gray text */
-    -fx-text-fill: #C9D1D9; /* Light gray text (for labels, etc.) */
-    -fx-light-text-color: #8B949E; /* Gray text */
-    -fx-border-color: #30363D; /* Dark gray lines for separation */
-    -fx-accent: #58A6FF; /* Light blue accent */
-    -fx-accent-hover: #388BFD; /* Brighter blue accent */
-    -fx-error-color: #F85149; /* Red */
+    -fx-background: #0D1117;
+    -fx-control-inner-background: #161B22;
+    -fx-color: #1F242C;
+    -fx-text-base-color: #C9D1D9;
+    -fx-light-text-color: #8B949E;
+    -fx-border-color: #30363D;
+    -fx-accent: #58A6FF;
+    -fx-accent-hover: #388BFD;
+    -fx-error-color: #F85149;
 }
 
 /* === General Theme Application === */
