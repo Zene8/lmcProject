@@ -2,76 +2,75 @@
 :root {
     -font-main: "Segoe UI", Arial, sans-serif;
 
-    /* Light Theme Colors */
-    -fx-light-bg-primary: #F8F8F8; /* Main background */
-    -fx-light-bg-secondary: #FFFFFF; /* Content areas, editor background */
-    -fx-light-bg-tertiary: #F0F0F0; /* Headers, toolbars, selected tab background */
-    -fx-light-text-primary: #000000; /* Black text */
-    -fx-light-text-secondary: #555555; /* Secondary text, less important info */
-    -fx-light-border-primary: #CCCCCC; /* Grey lines for separation */
-    -fx-light-accent-primary: #87CEEB; /* Light Sky Blue */
-    -fx-light-accent-secondary: #6495ED; /* Cornflower Blue (slightly darker sky blue) */
-    -fx-light-error: #D32F2F; /* Red */
+    /* Light Theme Colors (Custom Variables) */
+    --lmc-light-bg-primary: #F8F8F8; /* Main background */
+    --lmc-light-bg-secondary: #FFFFFF; /* Content areas, editor background */
+    --lmc-light-bg-tertiary: #F0F0F0; /* Headers, toolbars, selected tab background */
+    --lmc-light-text-primary: #000000; /* Black text */
+    --lmc-light-text-secondary: #555555; /* Secondary text, less important info */
+    --lmc-light-border-primary: #CCCCCC; /* Grey lines for separation */
+    --lmc-light-accent-primary: #87CEEB; /* Light Sky Blue */
+    --lmc-light-accent-secondary: #6495ED; /* Cornflower Blue (slightly darker sky blue) */
+    --lmc-light-error: #D32F2F; /* Red */
 
-    /* Default (Light) Theme Application */
-    -fx-background-color: -fx-light-bg-primary;
-    -fx-text-fill: -fx-light-text-primary;
-    -fx-border-color: -fx-light-border-primary;
-    -fx-accent-color: -fx-light-accent-primary;
-    -fx-accent-color-hover: -fx-light-accent-secondary;
-    -fx-error-color: -fx-light-error;
+    /* Dark Theme Colors (Custom Variables - will override light in dark-mode) */
+    --lmc-dark-bg-primary: #1A1A2E; /* Dark Blue/Black */
+    --lmc-dark-bg-secondary: #16213E; /* Slightly darker blue */
+    --lmc-dark-bg-tertiary: #0F3460; /* Even darker blue */
+    --lmc-dark-text-primary: #FFFFFF; /* White text */
+    --lmc-dark-text-secondary: #A0A0A0; /* Medium light grey */
+    --lmc-dark-border-primary: #3C3C3C; /* Grey lines for separation */
+    --lmc-dark-accent-primary: #007ACC; /* Ocean Blue (VS Code Blue) */
+    --lmc-dark-accent-secondary: #005A9E; /* Darker Ocean Blue */
+    --lmc-dark-error: #F44336; /* Red */
+
+    /* Default Theme (Light) - Apply custom variables to standard JavaFX properties */
+    -fx-background-color: var(--lmc-light-bg-primary);
+    -fx-text-fill: var(--lmc-light-text-primary);
+    -fx-border-color: var(--lmc-light-border-primary);
+    -fx-accent-color: var(--lmc-light-accent-primary);
+    -fx-accent-color-hover: var(--lmc-light-accent-secondary);
+    -fx-error-color: var(--lmc-light-error);
 }
 
 .root.dark-mode {
-    /* Dark Theme Colors */
-    -fx-dark-bg-primary: #1A1A2E; /* Dark Blue/Black */
-    -fx-dark-bg-secondary: #16213E; /* Slightly darker blue */
-    -fx-dark-bg-tertiary: #0F3460; /* Even darker blue */
-    -fx-dark-text-primary: #FFFFFF; /* White text */
-    -fx-dark-text-secondary: #A0A0A0; /* Medium light grey */
-    -fx-dark-border-primary: #3C3C3C; /* Grey lines for separation */
-    -fx-dark-accent-primary: #007ACC; /* Ocean Blue (VS Code Blue) */
-    -fx-dark-accent-secondary: #005A9E; /* Darker Ocean Blue */
-    -fx-dark-error: #F44336; /* Red */
-
-    /* Dark Theme Application */
-    -fx-background-color: -fx-dark-bg-primary;
-    -fx-text-fill: -fx-dark-text-primary;
-    -fx-border-color: -fx-dark-border-primary;
-    -fx-accent-color: -fx-dark-accent-primary;
-    -fx-accent-color-hover: -fx-dark-accent-secondary;
-    -fx-error-color: -fx-dark-error;
+    /* Dark Theme - Override standard JavaFX properties with dark custom variables */
+    -fx-background-color: var(--lmc-dark-bg-primary);
+    -fx-text-fill: var(--lmc-dark-text-primary);
+    -fx-border-color: var(--lmc-dark-border-primary);
+    -fx-accent-color: var(--lmc-dark-accent-primary);
+    -fx-accent-color-hover: var(--lmc-dark-accent-secondary);
+    -fx-error-color: var(--lmc-dark-error);
 }
 
-/* === Theme Application to Components === */
+/* === General Theme Application === */
 .root {
     -fx-font-family: -font-main;
     -fx-font-size: 14px;
+    -fx-padding: 5px; /* Overall padding for the root */
 }
 
-/* General Backgrounds and Text */
-.root, .sidebar, .console, .code-area, .tree-view, .tab-pane .tab-content-area, .titled-pane > *.content, .text-field, .find-replace-popup {
+/* Backgrounds and Text */
+.sidebar, .console, .code-area, .tree-view, .tab-pane .tab-content-area, .titled-pane > *.content, .text-field, .find-replace-popup {
     -fx-background-color: -fx-background-color;
+}
+
+.label, .menu-bar .label, .titled-pane > .title > .text, .tree-cell, .tab-label, .text-field {
     -fx-text-fill: -fx-text-fill;
 }
 
 /* Headers and Toolbars */
 .menu-bar, .tab-header-background, .titled-pane > .title, .control-panel, .toggle-button {
-    -fx-background-color: -fx-light-bg-tertiary;
+    -fx-background-color: var(--lmc-light-bg-tertiary);
 }
 
 .dark-mode .menu-bar, .dark-mode .tab-header-background, .dark-mode .titled-pane > .title, .dark-mode .control-panel, .dark-mode .toggle-button {
-    -fx-background-color: -fx-dark-bg-tertiary;
+    -fx-background-color: var(--lmc-dark-bg-tertiary);
 }
 
 /* Borders and Dividers */
 .sidebar, .console, .split-pane-divider, .titled-pane > *.content, .text-field, .find-replace-popup {
     -fx-border-color: -fx-border-color;
-}
-
-/* Text Colors */
-.label, .menu-bar .label, .titled-pane > .title > .text, .tree-cell, .tab-label, .text-field {
-    -fx-text-fill: -fx-text-fill;
 }
 
 /* Accent Colors */
@@ -122,7 +121,7 @@
 }
 
 .tab:selected .tab-label {
-    -fx-text-fill: -fx-text-fill;
+    -fx-text-fill: white;
 }
 
 .titled-pane > .title {
@@ -153,23 +152,23 @@
 }
 
 .icon-button:hover {
-    -fx-background-color: -fx-light-bg-tertiary;
+    -fx-background-color: var(--lmc-light-bg-tertiary);
 }
 
 .dark-mode .icon-button:hover {
-    -fx-background-color: -fx-dark-bg-tertiary;
+    -fx-background-color: var(--lmc-dark-bg-tertiary);
 }
 
 .code-area {
-    -fx-font-family: "Consolas", "Monaco", monospace;
+    -fx-font-family: -font-main;
 }
 
 .paragraph-box:has-caret {
-    -fx-background-color: -fx-light-bg-tertiary;
+    -fx-background-color: var(--lmc-light-bg-tertiary);
 }
 
 .dark-mode .paragraph-box:has-caret {
-    -fx-background-color: -fx-dark-bg-tertiary;
+    -fx-background-color: var(--lmc-dark-bg-tertiary);
 }
 
 .error-icon {
