@@ -23,6 +23,7 @@ import javafx.geometry.Insets;
 import java.net.URL;
 import java.util.prefs.Preferences;
 import javafx.scene.control.SeparatorMenuItem;
+import javafx.scene.control.Tooltip;
 
 public class App extends Application {
 
