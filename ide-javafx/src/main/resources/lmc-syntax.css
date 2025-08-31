@@ -11,52 +11,64 @@
 /* Syntax Highlighting Colors */
 /* Light Mode - More Saturated/Brighter */
 .keyword {
-    -fx-fill: #0000FF; /* Bright Blue */
+    -fx-fill: #0000FF;
+    /* Bright Blue */
     -fx-font-weight: bold;
 }
 
 .comment {
-    -fx-fill: #00A000; /* Brighter Green */
+    -fx-fill: #00A000;
+    /* Brighter Green */
 }
 
 .string {
-    -fx-fill: #FF4500; /* OrangeRed */
+    -fx-fill: #FF4500;
+    /* OrangeRed */
 }
 
 .integer {
-    -fx-fill: #8A2BE2; /* BlueViolet */
+    -fx-fill: #8A2BE2;
+    /* BlueViolet */
 }
 
 .instruction {
-    -fx-fill: #0000FF; /* Bright Blue */
+    -fx-fill: #0000FF;
+    /* Bright Blue */
     -fx-font-weight: bold;
 }
 
 .label {
-    -fx-fill: #1E90FF; /* DodgerBlue */
+    -fx-fill: #1E90FF;
+    /* DodgerBlue */
 }
 
 /* Dark Mode - More Saturated/Brighter */
 .dark-mode .keyword {
-    -fx-fill: #56B6C2; /* Electric Blue/Cyan */
+    -fx-fill: #56B6C2;
+    /* Electric Blue/Cyan */
 }
 
 .dark-mode .comment {
-    -fx-fill: #7EC699; /* Luminous Green */
+    -fx-fill: #7EC699;
+    /* Luminous Green */
 }
 
 .dark-mode .string {
-    -fx-fill: #D7BA7D; /* Glowing Orange/Yellow */
+    -fx-fill: #D7BA7D;
+    /* Glowing Orange/Yellow */
 }
 
 .dark-mode .integer {
-    -fx-fill: #C586C0; /* Vivid Purple */
+    -fx-fill: #C586C0;
+    /* Vivid Purple */
 }
 
 .dark-mode .instruction {
-    -fx-fill: #56B6C2; /* Electric Blue/Cyan */
+    -fx-fill: #56B6C2;
+    /* Electric Blue/Cyan */
 }
 
 .dark-mode .label {
-    -fx-fill: #9CDCFE; /* Piercing Light Blue */
+    -fx-fill: #9CDCFE;
+    /* Piercing Light Blue */
 }

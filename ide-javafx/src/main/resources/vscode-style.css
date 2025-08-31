@@ -34,30 +34,49 @@
 }
 
 /* Backgrounds and Text */
-.sidebar, .console, .code-area, .tree-view, .tab-pane .tab-content-area, .titled-pane > *.content, .text-field, .find-replace-popup, .memory-mailboxes-view {
+.sidebar,
+.console,
+.code-area,
+.tree-view,
+.tab-pane .tab-content-area,
+.titled-pane>*.content,
+.text-field,
+.find-replace-popup,
+.memory-mailboxes-view {
     -fx-background-color: -fx-control-inner-background;
 }
 
-.label, .menu-bar .label, .titled-pane > .title > .text, .tree-cell, .tab-label, .text-field {
+.label,
+.menu-bar .label,
+.titled-pane>.title>.text,
+.tree-cell,
+.tab-label,
+.text-field {
     -fx-text-fill: -fx-text-base-color;
 }
 
 /* Headers and Toolbars */
-.menu-bar, .tab-header-background, .titled-pane > .title, .control-panel, .toggle-button {
+.menu-bar,
+.tab-header-background,
+.titled-pane>.title,
+.control-panel,
+.toggle-button {
     -fx-background-color: -fx-color;
 }
 
-/* Borders and Dividers */
-.sidebar, .console, .split-pane-divider, .titled-pane > *.content, .text-field, .find-replace-popup, .memory-mailboxes-view {
-    -fx-border-color: -fx-border-color;
-}
-
 /* Accent Colors */
-.button, .slider .thumb, .tab:selected, .toggle-button:selected {
+.button,
+.slider .thumb,
+.tab:selected,
+.toggle-button:selected {
     -fx-background-color: -fx-accent;
 }
 
-.button:hover, .menu:hover, .menu-item:hover, .menu:showing, .toggle-button:hover {
+.button:hover,
+.menu:hover,
+.menu-item:hover,
+.menu:showing,
+.toggle-button:hover {
     -fx-background-color: -fx-accent-hover;
 }
 
@@ -81,6 +100,7 @@
 }
 
 .split-pane-divider {
+    -fx-background-color: -fx-border-color;
     -fx-padding: 0 1px;
 }
 
@@ -103,15 +123,15 @@
     -fx-text-fill: -fx-text-base-color;
 }
 
-.titled-pane > .title {
+.titled-pane>.title {
     -fx-padding: 8px;
 }
 
-.titled-pane > .title > .text {
+.titled-pane>.title>.text {
     -fx-font-weight: bold;
 }
 
-.titled-pane > *.content {
+.titled-pane>*.content {
     -fx-padding: 0;
     -fx-border-width: 1px 0 0 0;
 }
@@ -207,36 +227,36 @@
     -fx-border-width: 1px;
 }
 
-.text-field:focused, .button:focused, .toggle-button:focused {
+.text-field:focused,
+.button:focused,
+.toggle-button:focused {
     -fx-border-color: -fx-accent;
     -fx-border-width: 2px;
 }
 
-.scroll-pane > .scroll-bar:vertical > .track-background,
-.scroll-pane > .scroll-bar:horizontal > .track-background {
+.scroll-pane>.scroll-bar:vertical>.track-background,
+.scroll-pane>.scroll-bar:horizontal>.track-background {
     -fx-background-color: -fx-color;
 }
 
-.scroll-pane > .scroll-bar:vertical > .thumb,
-.scroll-pane > .scroll-bar:horizontal > .thumb {
+.scroll-pane>.scroll-bar:vertical>.thumb,
+.scroll-pane>.scroll-bar:horizontal>.thumb {
     -fx-background-color: -fx-accent;
     -fx-background-radius: 5px;
 }
 
-.scroll-pane > .scroll-bar:vertical > .thumb:hover,
-.scroll-pane > .scroll-bar:horizontal > .thumb:hover {
+.scroll-pane>.scroll-bar:vertical>.thumb:hover,
+.scroll-pane>.scroll-bar:horizontal>.thumb:hover {
     -fx-background-color: -fx-accent-hover;
 }
 
 .memory-mailboxes-view {
-    -fx-border-color: -fx-border-color;
     -fx-border-width: 1px;
     -fx-padding: 5px;
 }
 
 .memory-cell {
     -fx-background-color: -fx-control-inner-background;
-    -fx-border-color: -fx-border-color;
     -fx-border-width: 1px;
     -fx-padding: 5px;
 }
