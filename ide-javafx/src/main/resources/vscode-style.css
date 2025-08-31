@@ -1,175 +1,421 @@
-/* General styles */
+/* === Base Styles & Variables === */
 :root {
-    -primary-background: #FFFFFF;
-    -primary-control-inner-background: #FFFFFF;
-    -primary-text-color: #000000;
-    -primary-base-color: #F0F0F0;
-    -primary-accent-color: #007ACC;
-    -primary-border-color: #CCCCCC;
-    -fx-font-family: "Segoe UI", Arial, sans-serif;
+    -font-main: "Segoe UI", Arial, sans-serif;
+
+    /* Light Theme */
+    -light-bg-primary: #F8F8F8; /* Main background */
+    -light-bg-secondary: #FFFFFF; /* Content areas, editor background */
+    -light-bg-tertiary: #F0F0F0; /* Headers, toolbars, selected tab background */
+    -light-text-primary: #1E1E1E; /* Main text color */
+    -light-text-secondary: #555555; /* Secondary text, less important info */
+    -light-border-primary: #E0E0E0; /* Borders, dividers */
+    -light-accent-primary: #007ACC; /* Primary interactive elements, highlights */
+    -light-accent-secondary: #005A9E; /* Hover states for accents */
+    -light-error: #D32F2F; /* Error indicators */
+
+    /* Dark Theme */
+    -dark-bg-primary: #1E1E1E; /* Main background */
+    -dark-bg-secondary: #252526; /* Content areas, editor background */
+    -dark-bg-tertiary: #2D2D2D; /* Headers, toolbars, selected tab background */
+    -dark-text-primary: #D4D4D4; /* Main text color */
+    -dark-text-secondary: #A0A0A0; /* Secondary text, less important info */
+    -dark-border-primary: #3C3C3C; /* Borders, dividers */
+    -dark-accent-primary: #007ACC; /* Primary interactive elements, highlights */
+    -dark-accent-secondary: #005A9E; /* Hover states for accents */
+    -dark-error: #F44336; /* Error indicators */
+}
+
+/* === Theme Setup === */
+.root {
+    -fx-font-family: -font-main;
     -fx-font-size: 14px;
+    -fx-background-color: -light-bg-primary;
+    -fx-text-fill: -light-text-primary;
+    -fx-padding: 5px; /* Overall padding for the root */
 }
 
-.dark-mode {
-    -primary-background: #1E1E1E;
-    -primary-control-inner-background: #2D2D2D;
-    -primary-text-color: #D4D4D4;
-    -primary-base-color: #252526;
-    -primary-accent-color: #007ACC;
-    -primary-border-color: #3C3C3C;
+.root.dark-mode {
+    -fx-background-color: -dark-bg-primary;
+    -fx-text-fill: -dark-text-primary;
 }
 
-.body {
-    -fx-background-color: -primary-background;
+/* === Layout Panes === */
+.sidebar, .console {
+    -fx-background-color: -light-bg-secondary;
+    -fx-border-color: -light-border-primary;
+    -fx-border-width: 0 1px 0 0; /* Right border for left sidebar */
+    -fx-padding: 5px; /* Consistent padding for sidebars and console */
 }
 
-/* Buttons */
-.button {
-    -fx-background-color: -primary-accent-color;
-    -fx-text-fill: white;
-    -fx-font-weight: bold;
-    -fx-padding: 8px 16px;
-    -fx-background-radius: 4px;
+.dark-mode .sidebar, .dark-mode .console {
+    -fx-background-color: -dark-bg-secondary;
+    -fx-border-color: -dark-border-primary;
 }
 
-.button:hover {
-    -fx-background-color: #005A9E;
+.sidebar.right {
+    -fx-border-width: 0 0 0 1px; /* Left border for right sidebar */
 }
 
-/* Text Area & Code Area */
-.text-area,
-.code-area {
-    -fx-background-color: -primary-control-inner-background;
-    -fx-text-fill: -primary-text-color;
-    -fx-border-color: -primary-border-color;
-    -fx-border-width: 1px;
-    -fx-border-radius: 4px;
-    -fx-padding: 5px;
+.console {
+    -fx-border-width: 1px 0 0 0; /* Top border for console */
 }
 
-.text-area .content,
-.code-area .content {
-    -fx-background-color: -primary-control-inner-background;
-}
-
-/* Scroll Pane */
-.scroll-pane {
-    -fx-background-color: -primary-background;
-    -fx-border-color: -primary-border-color;
-    -fx-border-width: 1px;
-}
-
-/* Split Pane */
+/* === Split Pane === */
 .split-pane {
-    -fx-background-color: -primary-background;
+    -fx-background-color: transparent;
 }
 
 .split-pane-divider {
-    -fx-background-color: -primary-border-color;
+    -fx-background-color: -light-border-primary;
     -fx-padding: 0 1px;
 }
 
-/* Tab Pane */
+.dark-mode .split-pane-divider {
+    -fx-background-color: -dark-border-primary;
+}
+
+/* === Tab Panes & Tabs === */
 .tab-pane {
-    -fx-background-color: -primary-background;
-    -fx-border-color: -primary-border-color;
-    -fx-border-width: 1px 0 0 0;
+    -fx-background-color: transparent;
 }
 
 .tab-header-background {
-    -fx-background-color: -primary-base-color;
+    -fx-background-color: -light-bg-tertiary;
+}
+
+.dark-mode .tab-header-background {
+    -fx-background-color: -dark-bg-tertiary;
 }
 
 .tab {
-    -fx-background-color: -primary-base-color;
+    -fx-background-color: -light-bg-tertiary;
     -fx-padding: 8px 16px;
-    -fx-border-color: -primary-border-color;
-    -fx-border-width: 0 1px 0 0;
+    -fx-border-color: transparent;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.dark-mode .tab {
+    -fx-background-color: -dark-bg-tertiary;
 }
 
 .tab:selected {
-    -fx-background-color: -primary-background;
-    -fx-border-color: -primary-accent-color;
+    -fx-background-color: -light-bg-secondary;
+    -fx-border-color: -light-accent-primary;
     -fx-border-width: 2px 0 0 0;
 }
 
-/* Tree View */
-.tree-view {
-    -fx-background-color: -primary-background;
+.dark-mode .tab:selected {
+    -fx-background-color: -dark-bg-secondary;
+    -fx-border-color: -dark-accent-primary;
 }
 
-.tree-cell {
+.tab-label {
+    -fx-text-fill: -light-text-secondary;
+}
+
+.dark-mode .tab-label {
+    -fx-text-fill: -dark-text-secondary;
+}
+
+.tab:selected .tab-label {
+    -fx-text-fill: -light-text-primary;
+}
+
+.dark-mode .tab:selected .tab-label {
+    -fx-text-fill: -dark-text-primary;
+}
+
+
+/* === Titled Pane (for collapsible sections) === */
+.titled-pane > .title {
+    -fx-background-color: -light-bg-tertiary;
     -fx-padding: 8px;
-    -fx-text-fill: -primary-text-color;
 }
 
-.tree-cell:selected {
-    -fx-background-color: -primary-accent-color;
+.dark-mode .titled-pane > .title {
+    -fx-background-color: -dark-bg-tertiary;
+}
+
+.titled-pane > .title > .text {
+    -fx-fill: -light-text-primary;
+    -fx-font-weight: bold;
+}
+
+.dark-mode .titled-pane > .title > .text {
+    -fx-fill: -dark-text-primary;
+}
+
+.titled-pane > *.content {
+    -fx-background-color: -light-bg-secondary;
+    -fx-padding: 0;
+    -fx-border-color: -light-border-primary;
+    -fx-border-width: 1px 0 0 0;
+}
+
+.dark-mode .titled-pane > *.content {
+    -fx-background-color: -dark-bg-secondary;
+    -fx-border-color: -dark-border-primary;
+}
+
+
+/* === Buttons === */
+.button {
+    -fx-background-color: -light-accent-primary;
     -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 6px 12px;
+    -fx-background-radius: 3px;
+    -fx-border-width: 0;
 }
 
-/* Tool Bar */
-.tool-bar {
-    -fx-background-color: -primary-base-color;
-    -fx-border-color: -primary-border-color;
-    -fx-border-width: 0 0 1px 0;
+.dark-mode .button {
+     -fx-background-color: -dark-accent-primary;
 }
 
-/* Menu Bar */
+.button:hover {
+    -fx-background-color: -light-accent-secondary;
+}
+
+.dark-mode .button:hover {
+    -fx-background-color: -dark-accent-secondary;
+}
+
+/* Icon Button Style */
+.icon-button {
+    -fx-background-color: transparent;
+    -fx-padding: 4px;
+    -fx-background-radius: 3px;
+}
+
+.icon-button:hover {
+    -fx-background-color: -light-bg-tertiary;
+}
+
+.dark-mode .icon-button:hover {
+    -fx-background-color: -dark-bg-tertiary;
+}
+
+
+/* === Code Area === */
+.code-area {
+    -fx-background-color: -light-bg-secondary;
+    -fx-font-family: "Consolas", "Monaco", monospace;
+    -fx-fill: -light-text-primary; /* Default text color for code area */
+}
+
+.dark-mode .code-area {
+    -fx-background-color: -dark-bg-secondary;
+    -fx-fill: -dark-text-primary; /* Default text color for code area in dark mode */
+}
+
+.code-area .content {
+    -fx-background-color: -light-bg-secondary;
+}
+
+.dark-mode .code-area .content {
+    -fx-background-color: -dark-bg-secondary;
+}
+
+/* === Labels === */
+.label {
+    -fx-text-fill: -light-text-primary;
+}
+
+.dark-mode .label {
+    -fx-text-fill: -dark-text-primary;
+}
+
+.paragraph-box:has-caret {
+    -fx-background-color: #F0F0F0;
+}
+
+.dark-mode .paragraph-box:has-caret {
+    -fx-background-color: #2D2D2D;
+}
+
+.error-icon {
+    -fx-fill: -light-error;
+}
+
+.dark-mode .error-icon {
+    -fx-fill: -dark-error;
+}
+
+.current-line {
+    -fx-background-color: rgba(255, 0, 0, 0.1);
+}
+
+.dark-mode .current-line {
+    -fx-background-color: rgba(255, 0, 0, 0.2);
+}
+
+
+/* === Menu Bar === */
 .menu-bar {
-    -fx-background-color: -primary-base-color;
+    -fx-background-color: -light-bg-tertiary;
+}
+
+.dark-mode .menu-bar {
+    -fx-background-color: -dark-bg-tertiary;
 }
 
 .menu-bar .label {
-    /* FIX: Use a defined variable instead of a self-reference */
-    -fx-text-fill: -primary-text-color;
+    -fx-text-fill: -light-text-primary;
 }
 
-.menu:hover,
-.menu-item:hover {
-    -fx-background-color: -primary-accent-color;
+.dark-mode .menu-bar .label {
+    -fx-text-fill: -dark-text-primary;
 }
 
-.menu:hover .label,
-.menu-item:hover .label {
+.menu:hover, .menu-item:hover, .menu:showing {
+    -fx-background-color: -light-accent-primary;
+}
+
+.dark-mode .menu:hover, .dark-mode .menu-item:hover, .dark-mode .menu:showing {
+    -fx-background-color: -dark-accent-primary;
+}
+
+.menu:hover .label, .menu-item:hover .label, .menu:showing .label {
     -fx-text-fill: white;
 }
 
-/* Containers */
-.ide-container {
-    -fx-padding: 10px;
+.dark-mode .menu:hover .label, .dark-mode .menu-item:hover .label, .dark-mode .menu:showing .label {
+    -fx-text-fill: white;
+}
+
+/* === Tree View (File Explorer) === */
+.tree-view {
+    -fx-background-color: -light-bg-secondary;
+}
+
+.dark-mode .tree-view {
+    -fx-background-color: -dark-bg-secondary;
+}
+
+.tree-cell {
+    -fx-padding: 6px;
+    -fx-text-fill: -light-text-secondary;
+}
+
+.dark-mode .tree-cell {
+    -fx-text-fill: -dark-text-secondary;
+}
+
+.tree-cell:selected {
+    -fx-background-color: -light-accent-primary;
+}
+
+.dark-mode .tree-cell:selected {
+    -fx-background-color: -dark-accent-primary;
+}
+
+.tree-cell:selected .text {
+    -fx-fill: white;
+}
+
+/* === Control Panel (Top Right) === */
+.control-panel {
+    -fx-background-color: -light-bg-tertiary;
+    -fx-padding: 5px;
     -fx-spacing: 10px;
+    -fx-alignment: CENTER_RIGHT;
 }
 
-.status-bar {
-    -fx-background-color: -primary-accent-color;
-    -fx-padding: 5px 10px;
-    -fx-border-color: -primary-accent-color;
-    -fx-border-width: 1px 0 0 0;
-    -fx-font-size: 12px;
+.dark-mode .control-panel {
+    -fx-background-color: -dark-bg-tertiary;
+}
+
+/* === Slider === */
+.slider .track {
+    -fx-background-color: -light-border-primary;
+    -fx-pref-height: 4px;
+}
+
+.dark-mode .slider .track {
+    -fx-background-color: -dark-border-primary;
+}
+
+.slider .thumb {
+    -fx-background-color: -light-accent-primary;
+    -fx-background-radius: 50%;
+    -fx-pref-width: 12px;
+    -fx-pref-height: 12px;
+}
+
+.dark-mode .slider .thumb {
+    -fx-background-color: -dark-accent-primary;
+}
+
+.slider .axis {
+    -fx-tick-label-fill: -light-text-secondary;
+}
+
+.dark-mode .slider .axis {
+    -fx-tick-label-fill: -dark-text-secondary;
+}
+
+/* === Toggle Button (for Slow Mode) === */
+.toggle-button {
+    -fx-background-color: -light-bg-tertiary;
+    -fx-text-fill: -light-text-primary;
+    -fx-background-radius: 3px;
+    -fx-padding: 6px 12px;
+}
+
+.dark-mode .toggle-button {
+    -fx-background-color: -dark-bg-tertiary;
+    -fx-text-fill: -dark-text-primary;
+}
+
+.toggle-button:selected {
+    -fx-background-color: -light-accent-primary;
     -fx-text-fill: white;
 }
 
-.current-line-highlight {
-    -fx-background-color: #3A3A3A;
+.dark-mode .toggle-button:selected {
+    -fx-background-color: -dark-accent-primary;
+    -fx-text-fill: white;
 }
 
-.dark-mode .current-line-highlight {
-    -fx-background-color: #3A3A3A;
-}
-
-.light-mode .current-line-highlight {
-    -fx-background-color: #E0E0E0;
-}
-
-.editor-container {
-    -fx-border-color: -primary-border-color;
+/* === Find/Replace Popups === */
+.find-replace-popup {
+    -fx-background-color: -light-bg-secondary;
+    -fx-border-color: -light-border-primary;
     -fx-border-width: 1px;
-    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 10px;
+    -fx-spacing: 5px;
 }
 
-.tools-container {
-    -fx-border-color: -primary-border-color;
+.dark-mode .find-replace-popup {
+    -fx-background-color: -dark-bg-secondary;
+    -fx-border-color: -dark-border-primary;
+}
+
+.text-field {
+    -fx-background-color: -light-bg-primary;
+    -fx-text-fill: -light-text-primary;
+    -fx-border-color: -light-border-primary;
     -fx-border-width: 1px;
-    -fx-border-radius: 4px;
+    -fx-background-radius: 3px;
+    -fx-padding: 5px;
+}
+
+.dark-mode .text-field {
+    -fx-background-color: -dark-bg-primary;
+    -fx-text-fill: -dark-text-primary;
+    -fx-border-color: -dark-border-primary;
+}
+
+/* === Status Bar (if implemented) === */
+.status-bar {
+    -fx-background-color: -light-accent-primary;
+    -fx-text-fill: white;
+    -fx-padding: 5px 10px;
+    -fx-font-size: 12px;
+}
+
+.dark-mode .status-bar {
+    -fx-background-color: -dark-accent-primary;
 }

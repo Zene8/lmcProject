@@ -27,11 +27,10 @@ public class UIController {
 
     private Stage primaryStage;
     private BorderPane root;
-    private SplitPane mainSplitPane;
+    private SplitPane mainSplitPane, verticalSplitPane;
     private TabPane editorTabPane;
-    private VBox toolsSidebar;
-    private TabPane toolsTabPane;
-    private BorderPane memoryView;
+    private VBox leftSidebar, rightSidebar;
+    private BorderPane console;
     private TreeView<File> fileExplorer;
 
     private FileManager fileManager;
@@ -66,50 +65,69 @@ public class UIController {
 
     public void initComponents() {
         root = new BorderPane();
-        mainSplitPane = new SplitPane();
         editorTabPane = new TabPane();
-        toolsSidebar = createToolsSidebar();
-        memoryView = createMemoryView();
         fileExplorer = new TreeView<>();
 
-        mainSplitPane.getItems().addAll(editorTabPane, toolsSidebar);
-        mainSplitPane.setDividerPositions(0.75);
+        // Main content area with resizable sidebars
+        mainSplitPane = new SplitPane();
+        mainSplitPane.setDividerPositions(0.2, 0.8);
+
+        // Vertical split for editor and console
+        verticalSplitPane = new SplitPane();
+        verticalSplitPane.setOrientation(javafx.geometry.Orientation.VERTICAL);
+        verticalSplitPane.setDividerPositions(0.75);
+
+        // Construct the layout
+        leftSidebar = createLeftSidebar();
+        rightSidebar = createRightSidebar();
+        console = createConsole();
+
+        mainSplitPane.getItems().addAll(leftSidebar, verticalSplitPane, rightSidebar);
+        verticalSplitPane.getItems().addAll(editorTabPane, console);
 
         root.setCenter(mainSplitPane);
-        root.setBottom(memoryView);
 
         createFindPopup();
         createReplacePopup();
     }
 
-    private VBox createToolsSidebar() {
-        toolsSidebar = new VBox();
-        toolsSidebar.getStyleClass().add("tools-container");
-        toolsTabPane = new TabPane();
-
-        Tab fileExplorerTab = new Tab("File Explorer");
-        fileExplorerTab.setClosable(false);
-        fileExplorerTab.setContent(fileExplorer);
-
-        Tab memoryManagementTab = new Tab("Memory");
-        memoryManagementTab.setClosable(false);
-        // Add memory management components here
-
-        Tab learningToolsTab = new Tab("Learn");
-        learningToolsTab.setClosable(false);
-        // Add learning tools components here
-
-        toolsTabPane.getTabs().addAll(fileExplorerTab, memoryManagementTab, learningToolsTab);
-        toolsSidebar.getChildren().add(toolsTabPane);
-        return toolsSidebar;
+    private VBox createLeftSidebar() {
+        VBox sidebar = new VBox();
+        sidebar.getStyleClass().add("sidebar");
+        TitledPane fileExplorerPane = new TitledPane("File Explorer", fileExplorer);
+        fileExplorerPane.setCollapsible(true);
+        fileExplorerPane.setExpanded(true);
+        sidebar.getChildren().add(fileExplorerPane);
+        return sidebar;
     }
 
-    private BorderPane createMemoryView() {
-        memoryView = new BorderPane();
-        memoryView.getStyleClass().add("editor-container");
+    private VBox createRightSidebar() {
+        VBox sidebar = new VBox();
+        sidebar.getStyleClass().add("sidebar");
+        TabPane toolsTabPane = new TabPane();
+
+        Tab toolsTab = new Tab("Tools");
+        toolsTab.setClosable(false);
+        // Add tools components here
+
+        Tab learnTab = new Tab("Learn");
+        learnTab.setClosable(false);
+        // Add learning components here
+
+        toolsTabPane.getTabs().addAll(toolsTab, learnTab);
+        sidebar.getChildren().add(toolsTabPane);
+        return sidebar;
+    }
+
+    private BorderPane createConsole() {
+        BorderPane consolePane = new BorderPane();
+        consolePane.getStyleClass().add("console");
         memoryUsageLabel = new Label("Memory Usage: 0/100");
-        memoryView.setCenter(memoryUsageLabel);
-        return memoryView;
+        TitledPane consoleTitlePane = new TitledPane("Console", consolePane);
+        consoleTitlePane.setCollapsible(true);
+        consoleTitlePane.setExpanded(true);
+        consolePane.setCenter(memoryUsageLabel);
+        return consolePane;
     }
 
     private void createFindPopup() {
@@ -117,7 +135,8 @@ public class UIController {
         findPopup.setPadding(new Insets(10));
         findPopup.setSpacing(5);
         findField = new TextField();
-        Button findNextButton = new Button("Find Next");
+        Button findNextButton = new Button("", createIcon("search.svg"));
+        findNextButton.setTooltip(new Tooltip("Find Next"));
         findNextButton.setOnAction(e -> fileManager.findNext(findField.getText()));
         findPopup.getChildren().addAll(new Label("Find:"), findField, findNextButton);
         findPopup.setVisible(false);
@@ -130,9 +149,11 @@ public class UIController {
         replacePopup.setSpacing(5);
         replaceFindField = new TextField();
         replaceWithField = new TextField();
-        Button replaceNextButton = new Button("Replace");
+        Button replaceNextButton = new Button("", createIcon("find_replace.svg"));
+        replaceNextButton.setTooltip(new Tooltip("Replace"));
         replaceNextButton.setOnAction(e -> fileManager.replaceNext());
-        Button replaceAllButton = new Button("Replace All");
+        Button replaceAllButton = new Button("", createIcon("find_replace.svg"));
+        replaceAllButton.setTooltip(new Tooltip("Replace All"));
         replaceAllButton.setOnAction(e -> fileManager.replaceAll());
         replacePopup.getChildren().addAll(new Label("Find:"), replaceFindField, new Label("Replace with:"), replaceWithField, new HBox(5, replaceNextButton, replaceAllButton));
         replacePopup.setVisible(false);
@@ -182,19 +203,20 @@ public class UIController {
     }
 
     public void toggleToolsSidebar() {
-        if (mainSplitPane.getItems().contains(toolsSidebar)) {
-            mainSplitPane.getItems().remove(toolsSidebar);
+        if (mainSplitPane.getItems().contains(rightSidebar)) {
+            mainSplitPane.getItems().remove(rightSidebar);
         } else {
-            mainSplitPane.getItems().add(toolsSidebar);
-            mainSplitPane.setDividerPositions(0.75);
+            mainSplitPane.getItems().add(rightSidebar);
+            mainSplitPane.setDividerPositions(0.2, 0.8);
         }
     }
 
     public void toggleMemoryView() {
-        if (root.getBottom() == memoryView) {
-            root.setBottom(null);
+        if (verticalSplitPane.getItems().contains(console)) {
+            verticalSplitPane.getItems().remove(console);
         } else {
-            root.setBottom(memoryView);
+            verticalSplitPane.getItems().add(console);
+            verticalSplitPane.setDividerPositions(0.75);
         }
     }
 
@@ -277,11 +299,23 @@ public class UIController {
     }
 
     public ImageView createFolderIcon() {
-        return new ImageView(new Image(getClass().getResourceAsStream("/icons/folder.svg")));
+        return createIcon("folder.svg");
     }
 
     public ImageView createFileIcon() {
-        return new ImageView(new Image(getClass().getResourceAsStream("/icons/file.svg")));
+        return createIcon("file.svg");
+    }
+
+    public ImageView createIcon(String iconName) {
+        return createIcon(iconName, 16);
+    }
+
+    public ImageView createIcon(String iconName, double size) {
+        Image image = new Image(getClass().getResourceAsStream("/icons/" + iconName));
+        ImageView imageView = new ImageView(image);
+        imageView.setFitWidth(size);
+        imageView.setFitHeight(size);
+        return imageView;
     }
 
     public String getReplaceFindPopupText() {

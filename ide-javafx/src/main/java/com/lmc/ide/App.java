@@ -68,8 +68,8 @@ public class App extends Application {
 
         // --- Build Scene ---
         BorderPane root = new BorderPane();
-        HBox controlPanel = createControlPanel();
-        root.setTop(new VBox(createMenuBar(), controlPanel));
+        VBox topBar = new VBox(createMenuBar(), createControlPanel());
+        root.setTop(topBar);
         root.setCenter(uiController.getRoot());
 
         Scene scene = new Scene(root, 1600, 1000);
@@ -89,11 +89,11 @@ public class App extends Application {
 
         // File Menu
         Menu fileMenu = new Menu("File");
-        MenuItem newFile = new MenuItem("New");
+        MenuItem newFile = new MenuItem("New", uiController.createIcon("insert_drive_file.svg"));
         newFile.setOnAction(e -> fileManager.newFile());
-        MenuItem openProject = new MenuItem("Open");
+        MenuItem openProject = new MenuItem("Open", uiController.createIcon("folder_open.svg"));
         openProject.setOnAction(e -> fileManager.openProject());
-        MenuItem saveFile = new MenuItem("Save");
+        MenuItem saveFile = new MenuItem("Save", uiController.createIcon("save.svg"));
         saveFile.setOnAction(e -> fileManager.saveFile());
         MenuItem closeTab = new MenuItem("Close Tab");
         closeTab.setOnAction(e -> fileManager.closeCurrentTab());
@@ -105,9 +105,9 @@ public class App extends Application {
         undo.setOnAction(e -> uiController.getCurrentCodeArea().undo());
         MenuItem redo = new MenuItem("Redo");
         redo.setOnAction(e -> uiController.getCurrentCodeArea().redo());
-        MenuItem find = new MenuItem("Find");
+        MenuItem find = new MenuItem("Find", uiController.createIcon("search.svg"));
         find.setOnAction(e -> uiController.toggleFindPopup());
-        MenuItem replace = new MenuItem("Replace");
+        MenuItem replace = new MenuItem("Replace", uiController.createIcon("find_replace.svg"));
         replace.setOnAction(e -> uiController.toggleReplacePopup());
         MenuItem formatCode = new MenuItem("Format Code");
         formatCode.setOnAction(e -> {
@@ -223,10 +223,14 @@ public class App extends Application {
     }
 
     private HBox createControlPanel() {
-        startButton = new Button("Start");
-        stopButton = new Button("Stop");
-        stepButton = new Button("Step");
-        resetButton = new Button("Reset");
+        startButton = new Button("", uiController.createIcon("play_arrow.svg", 24));
+        startButton.setTooltip(new Tooltip("Run Program"));
+        stopButton = new Button("", uiController.createIcon("stop.svg", 24));
+        stopButton.setTooltip(new Tooltip("Stop Program"));
+        stepButton = new Button("", uiController.createIcon("skip_next.svg", 24));
+        stepButton.setTooltip(new Tooltip("Step Program"));
+        resetButton = new Button("", uiController.createIcon("refresh.svg", 24));
+        resetButton.setTooltip(new Tooltip("Reset Program"));
 
         // Set actions
         startButton.setOnAction(e -> lmcExecutor.runLMC());
@@ -248,7 +252,7 @@ public class App extends Application {
         lmcExecutor.setSpeedControls(speedModeToggle, speedSlider);
 
         HBox controlPanel = new HBox(10); // Spacing of 10
-        controlPanel.setAlignment(Pos.CENTER_LEFT);
+        controlPanel.setAlignment(Pos.CENTER_RIGHT);
         controlPanel.setPadding(new Insets(5));
         controlPanel.getChildren().addAll(startButton, stopButton, stepButton, resetButton, speedModeToggle, speedSlider);
         return controlPanel;
