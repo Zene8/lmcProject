@@ -1,5 +1,6 @@
 package com.lmc.ide;
 
+import java.io.InputStream;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -155,7 +156,8 @@ public class UIController {
         Button replaceAllButton = new Button("", createIcon("find_replace.svg"));
         replaceAllButton.setTooltip(new Tooltip("Replace All"));
         replaceAllButton.setOnAction(e -> fileManager.replaceAll());
-        replacePopup.getChildren().addAll(new Label("Find:"), replaceFindField, new Label("Replace with:"), replaceWithField, new HBox(5, replaceNextButton, replaceAllButton));
+        replacePopup.getChildren().addAll(new Label("Find:"), replaceFindField, new Label("Replace with:"),
+                replaceWithField, new HBox(5, replaceNextButton, replaceAllButton));
         replacePopup.setVisible(false);
         root.getChildren().add(replacePopup);
     }
