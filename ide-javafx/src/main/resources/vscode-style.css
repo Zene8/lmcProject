@@ -1,37 +1,32 @@
 /* General styles */
 :root {
-    -fx-background: #FFFFFF;
-    -fx-control-inner-background: #FFFFFF;
-    -fx-text-fill: #000000;
-    -fx-base: #F0F0F0;
-    -fx-primary: #007ACC;
-    -fx-secondary: #6c757d;
-    -fx-border-color: #CCCCCC;
-    -fx-box-border: #CCCCCC;
-    -fx-focus-color: #007ACC;
+    -primary-background: #FFFFFF;
+    -primary-control-inner-background: #FFFFFF;
+    -primary-text-color: #000000;
+    -primary-base-color: #F0F0F0;
+    -primary-accent-color: #007ACC;
+    -primary-border-color: #CCCCCC;
     -fx-font-family: "Segoe UI", Arial, sans-serif;
     -fx-font-size: 14px;
 }
 
 .dark-mode {
-    -fx-background: #1E1E1E;
-    -fx-control-inner-background: #1E1E1E;
-    -fx-text-fill: #FFFFFF;
-    -fx-base: #252526;
-    -fx-primary: #007ACC;
-    -fx-secondary: #6c757d;
-    -fx-border-color: #333333;
-    -fx-box-border: #333333;
+    -primary-background: #1E1E1E;
+    -primary-control-inner-background: #2D2D2D;
+    -primary-text-color: #D4D4D4;
+    -primary-base-color: #252526;
+    -primary-accent-color: #007ACC;
+    -primary-border-color: #3C3C3C;
 }
 
 .body {
-    -fx-background-color: -fx-background;
+    -fx-background-color: -primary-background;
 }
 
 /* Buttons */
 .button {
-    -fx-background-color: -fx-primary;
-    -fx-text-fill: #FFFFFF;
+    -fx-background-color: -primary-accent-color;
+    -fx-text-fill: white;
     -fx-font-weight: bold;
     -fx-padding: 8px 16px;
     -fx-background-radius: 4px;
@@ -41,98 +36,103 @@
     -fx-background-color: #005A9E;
 }
 
-/* Text Area */
-.text-area {
-    -fx-background-color: -fx-control-inner-background;
-    -fx-text-fill: -fx-text-fill;
-    -fx-border-color: -fx-border-color;
+/* Text Area & Code Area */
+.text-area,
+.code-area {
+    -fx-background-color: -primary-control-inner-background;
+    -fx-text-fill: -primary-text-color;
+    -fx-border-color: -primary-border-color;
     -fx-border-width: 1px;
     -fx-border-radius: 4px;
     -fx-padding: 5px;
 }
 
-.text-area .content {
-    -fx-background-color: -fx-control-inner-background;
+.text-area .content,
+.code-area .content {
+    -fx-background-color: -primary-control-inner-background;
 }
 
 /* Scroll Pane */
 .scroll-pane {
-    -fx-background-color: -fx-background;
-    -fx-border-color: -fx-border-color;
+    -fx-background-color: -primary-background;
+    -fx-border-color: -primary-border-color;
     -fx-border-width: 1px;
 }
 
 /* Split Pane */
 .split-pane {
-    -fx-background-color: -fx-background;
+    -fx-background-color: -primary-background;
 }
 
 .split-pane-divider {
-    -fx-background-color: -fx-border-color;
+    -fx-background-color: -primary-border-color;
     -fx-padding: 0 1px;
 }
 
 /* Tab Pane */
 .tab-pane {
-    -fx-background-color: -fx-background;
-    -fx-border-color: -fx-border-color;
+    -fx-background-color: -primary-background;
+    -fx-border-color: -primary-border-color;
     -fx-border-width: 1px 0 0 0;
 }
 
 .tab-header-background {
-    -fx-background-color: -fx-base;
+    -fx-background-color: -primary-base-color;
 }
 
 .tab {
-    -fx-background-color: -fx-base;
+    -fx-background-color: -primary-base-color;
     -fx-padding: 8px 16px;
-    -fx-border-color: -fx-border-color;
+    -fx-border-color: -primary-border-color;
     -fx-border-width: 0 1px 0 0;
 }
 
 .tab:selected {
-    -fx-background-color: -fx-background;
-    -fx-border-color: -fx-primary;
+    -fx-background-color: -primary-background;
+    -fx-border-color: -primary-accent-color;
     -fx-border-width: 2px 0 0 0;
 }
 
 /* Tree View */
 .tree-view {
-    -fx-background-color: -fx-background;
-    -fx-text-fill: -fx-text-fill;
+    -fx-background-color: -primary-background;
 }
 
 .tree-cell {
     -fx-padding: 8px;
+    -fx-text-fill: -primary-text-color;
 }
 
 .tree-cell:selected {
-    -fx-background-color: -fx-primary;
-    -fx-text-fill: #FFFFFF;
+    -fx-background-color: -primary-accent-color;
+    -fx-text-fill: white;
 }
 
 /* Tool Bar */
 .tool-bar {
-    -fx-background-color: -fx-base;
-    -fx-border-color: -fx-border-color;
+    -fx-background-color: -primary-base-color;
+    -fx-border-color: -primary-border-color;
     -fx-border-width: 0 0 1px 0;
 }
 
 /* Menu Bar */
 .menu-bar {
-    -fx-background-color: -fx-base;
+    -fx-background-color: -primary-base-color;
 }
 
 .menu-bar .label {
-    -fx-text-fill: -fx-text-fill;
+    /* FIX: Use a defined variable instead of a self-reference */
+    -fx-text-fill: -primary-text-color;
 }
 
-.menu:hover, .menu-item:hover {
-    -fx-background-color: -fx-primary;
+.menu:hover,
+.menu-item:hover {
+    -fx-background-color: -primary-accent-color;
 }
 
-.menu:hover .label, .menu-item:hover .label {
-    -fx-text-fill: #FFFFFF;
+.menu:hover .label,
+.menu-item:hover .label {
+    -fx-text-fill: white;
 }
 
 /* Containers */
@@ -142,46 +142,34 @@
 }
 
 .status-bar {
-    -fx-background-color: -fx-base;
+    -fx-background-color: -primary-accent-color;
     -fx-padding: 5px 10px;
-    -fx-border-color: -fx-border-color;
+    -fx-border-color: -primary-accent-color;
     -fx-border-width: 1px 0 0 0;
     -fx-font-size: 12px;
-    -fx-text-fill: -fx-text-fill;
+    -fx-text-fill: white;
 }
 
-.dark-mode .status-bar {
-    -fx-background-color: #007ACC;
-    -fx-text-fill: #FFFFFF;
-    -fx-border-color: #007ACC;
-}
-
-.light-mode .status-bar {
-    -fx-background-color: #007ACC;
-    -fx-text-fill: #FFFFFF;
-    -fx-border-color: #007ACC;
-}
-
-.current-line {
-    -fx-background-color: #3A3A3A; /* Darker background for highlighted line */
-}
-
-.dark-mode .current-line {
+.current-line-highlight {
     -fx-background-color: #3A3A3A;
 }
 
-.light-mode .current-line {
+.dark-mode .current-line-highlight {
+    -fx-background-color: #3A3A3A;
+}
+
+.light-mode .current-line-highlight {
     -fx-background-color: #E0E0E0;
 }
 
 .editor-container {
-    -fx-border-color: -fx-border-color;
+    -fx-border-color: -primary-border-color;
     -fx-border-width: 1px;
     -fx-border-radius: 4px;
 }
 
 .tools-container {
-    -fx-border-color: -fx-border-color;
+    -fx-border-color: -primary-border-color;
     -fx-border-width: 1px;
     -fx-border-radius: 4px;
 }
