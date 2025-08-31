@@ -301,20 +301,24 @@ public class UIController {
         learnTab.setClosable(false);
         // Add learning components here
 
-        toolsTabPane.getTabs().addAll(toolsTab, memoryTab, learnTab);
+        Tab aiChatTab = new Tab("AI Chat");
+        aiChatTab.setClosable(false);
+        aiChatTab.setContent(createAIChatPane());
+
+        toolsTabPane.getTabs().addAll(toolsTab, memoryTab, learnTab, aiChatTab);
 
         sidebar.getChildren().addAll(runControlsPanel, toolsTabPane);
         return sidebar;
     }
 
     private HBox createRunControlsPanel() {
-        Button startButton = new Button("", createIcon("play_arrow.svg", 24));
+        Button startButton = new Button("Run");
         startButton.setTooltip(new Tooltip("Run Program"));
-        Button stopButton = new Button("", createIcon("stop.svg", 24));
+        Button stopButton = new Button("Stop");
         stopButton.setTooltip(new Tooltip("Stop Program"));
-        Button stepButton = new Button("", createIcon("skip_next.svg", 24));
+        Button stepButton = new Button("Step");
         stepButton.setTooltip(new Tooltip("Step Program"));
-        Button resetButton = new Button("", createIcon("refresh.svg", 24));
+        Button resetButton = new Button("Reset");
         resetButton.setTooltip(new Tooltip("Reset Program"));
 
         // Set actions
@@ -555,6 +559,13 @@ public class UIController {
             }
             return hbox;
         });
+
+        codeArea.setOnKeyPressed(e -> {
+            if (e.getCode() == KeyCode.TAB) {
+                codeArea.insertText(codeArea.getCaretPosition(), "    ");
+                e.consume();
+            }
+        });
     }
 
     public void setStatusBarMessage(String message) {
@@ -688,5 +699,29 @@ public class UIController {
 
         aiModelMenu.getItems().addAll(localModelsMenu, cloudModelsMenu);
         return aiModelMenu;
+    }
+
+    private VBox createAIChatPane() {
+        VBox chatPane = new VBox();
+        chatPane.setSpacing(5);
+        chatPane.setPadding(new Insets(10));
+
+        TextArea chatHistory = new TextArea();
+        chatHistory.setEditable(false);
+        chatHistory.setWrapText(true);
+        chatHistory.setPrefHeight(400);
+
+        TextField chatInput = new TextField();
+        chatInput.setPromptText("Ask AI for help...");
+        chatInput.setOnAction(e -> {
+            String userInput = chatInput.getText();
+            chatHistory.appendText("You: " + userInput + "\n");
+            chatInput.clear();
+            // TODO: Add AI interaction logic here
+            chatHistory.appendText("AI: I am a placeholder response.\n");
+        });
+
+        chatPane.getChildren().addAll(chatHistory, chatInput);
+        return chatPane;
     }
 }

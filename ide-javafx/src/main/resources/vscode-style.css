@@ -102,6 +102,7 @@
 .split-pane-divider {
     -fx-background-color: -fx-border-color;
     -fx-padding: 0 1px;
+    -fx-background-color: -fx-border-color;
 }
 
 .tab {
