@@ -86,13 +86,13 @@
 
 /* Specific Overrides/Refinements */
 .sidebar, .console, .memory-mailboxes-view, .tab-pane, .titled-pane {
-    -fx-border-color: -fx-accent;
-    -fx-border-width: 2px;
+    -fx-border-color: -fx-border-color;
+    -fx-border-width: 1px;
 }
 
 .split-pane-divider {
-    -fx-padding: 0 2px;
-    -fx-background-color: -fx-accent;
+    -fx-padding: 0 1px;
+    -fx-background-color: -fx-border-color;
 }
 
 .tab {

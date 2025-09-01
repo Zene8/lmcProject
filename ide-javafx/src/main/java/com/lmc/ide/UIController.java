@@ -126,11 +126,11 @@ public class UIController {
 
         // File Menu
         Menu fileMenu = new Menu("File");
-        MenuItem newFile = new MenuItem("New", createIcon("insert_drive_file.svg"));
+        MenuItem newFile = new MenuItem("New");
         newFile.setOnAction(e -> fileManager.newFile());
-        MenuItem openProject = new MenuItem("Open", createIcon("folder_open.svg"));
+        MenuItem openProject = new MenuItem("Open");
         openProject.setOnAction(e -> fileManager.openProject());
-        MenuItem saveFile = new MenuItem("Save", createIcon("save.svg"));
+        MenuItem saveFile = new MenuItem("Save");
         saveFile.setOnAction(e -> fileManager.saveFile());
         MenuItem closeTab = new MenuItem("Close Tab");
         closeTab.setOnAction(e -> fileManager.closeCurrentTab());
@@ -142,9 +142,9 @@ public class UIController {
         undo.setOnAction(e -> getCurrentCodeArea().undo());
         MenuItem redo = new MenuItem("Redo");
         redo.setOnAction(e -> getCurrentCodeArea().redo());
-        MenuItem find = new MenuItem("Find", createIcon("search.svg"));
+        MenuItem find = new MenuItem("Find");
         find.setOnAction(e -> toggleFindPopup());
-        MenuItem replace = new MenuItem("Replace", createIcon("find_replace.svg"));
+        MenuItem replace = new MenuItem("Replace");
         replace.setOnAction(e -> toggleReplacePopup());
         MenuItem formatCode = new MenuItem("Format Code");
         formatCode.setOnAction(e -> {
@@ -386,7 +386,7 @@ public class UIController {
         findPopup.setPadding(new Insets(10));
         findPopup.setSpacing(5);
         findField = new TextField();
-        Button findNextButton = new Button("", createIcon("search.svg"));
+        Button findNextButton = new Button("Find Next");
         findNextButton.setTooltip(new Tooltip("Find Next"));
         findNextButton.setOnAction(e -> ideFeatures.findNext(findField.getText(), true));
         findPopup.getChildren().addAll(new Label("Find:"), findField, findNextButton);
@@ -401,10 +401,10 @@ public class UIController {
         replacePopup.setSpacing(5);
         replaceFindField = new TextField();
         replaceWithField = new TextField();
-        Button replaceNextButton = new Button("", createIcon("find_replace.svg"));
+        Button replaceNextButton = new Button("Replace");
         replaceNextButton.setTooltip(new Tooltip("Replace"));
         replaceNextButton.setOnAction(e -> ideFeatures.replaceNext());
-        Button replaceAllButton = new Button("", createIcon("find_replace.svg"));
+        Button replaceAllButton = new Button("Replace All");
         replaceAllButton.setTooltip(new Tooltip("Replace All"));
         replaceAllButton.setOnAction(e -> ideFeatures.replaceAll());
         replacePopup.getChildren().addAll(new Label("Find:"), replaceFindField, new Label("Replace with:"),
@@ -577,7 +577,7 @@ public class UIController {
     }
 
     public void refreshFileExplorer(File directory) {
-        TreeItem<File> rootItem = new TreeItem<>(directory, createFolderIcon());
+        TreeItem<File> rootItem = new TreeItem<>(directory);
         rootItem.setExpanded(true);
         fileExplorer.setRoot(rootItem);
         populateTreeView(directory, rootItem);
@@ -596,8 +596,7 @@ public class UIController {
 
             for (File file : files) {
                 if (!file.getName().startsWith(".")) {
-                    TreeItem<File> item = new TreeItem<>(file,
-                            file.isDirectory() ? createFolderIcon() : createFileIcon());
+                    TreeItem<File> item = new TreeItem<>(file);
                     if (file.isDirectory()) {
                         populateTreeView(file, item);
                     }
@@ -607,33 +606,7 @@ public class UIController {
         }
     }
 
-    public ImageView createFolderIcon() {
-        return createIcon("folder.svg");
-    }
-
-    public ImageView createFileIcon() {
-        return createIcon("file.svg");
-    }
-
-    public ImageView createIcon(String iconName) {
-        return createIcon(iconName, 16);
-    }
-
-    public ImageView createIcon(String iconName, double size) {
-        String path = "/icons/" + iconName;
-        InputStream stream = getClass().getResourceAsStream(path);
-
-        if (stream == null) {
-            System.err.println("Error: Icon resource not found at path: " + path);
-            return new ImageView();
-        }
-
-        Image image = new Image(stream);
-        ImageView imageView = new ImageView(image);
-        imageView.setFitWidth(size);
-        imageView.setFitHeight(size);
-        return imageView;
-    }
+    
 
     public String getFindPopupText() {
         return findField.getText();

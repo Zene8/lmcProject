@@ -41,10 +41,10 @@ public class App extends Application {
         uiController.setLmcExecutor(lmcExecutor);
         uiController.setAiModelManager(aiModelManager);
         uiController.setPrefs(prefs);
-        lmcExecutor.setConsole(uiController.getConsoleOutputArea()); // Set console output area
-
         // --- Finalize UI construction now that its core dependencies are set ---
         uiController.initComponents();
+
+        lmcExecutor.setConsole(uiController.getConsoleOutputArea()); // Set console output area
 
         // --- Setup IDE Features now that UI is fully initialized ---
         ideFeatures = new LMCIDEFeatures(uiController, parser, uiController.getMemoryUsageLabel(),
