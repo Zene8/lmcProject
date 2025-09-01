@@ -58,6 +58,10 @@ public class FileManager {
             codeArea.setParagraphGraphicFactory(LineNumberFactory.get(codeArea));
             codeArea.replaceText(content);
             uiController.newTab(file.getName(), codeArea);
+            Tab selectedTab = uiController.getEditorTabPane().getSelectionModel().getSelectedItem();
+            if (selectedTab != null) {
+                selectedTab.setUserData(file);
+            }
         } catch (IOException e) {
             showAlert("Error", "Could not read file: " + e.getMessage());
         }

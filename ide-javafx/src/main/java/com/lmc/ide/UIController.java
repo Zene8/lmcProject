@@ -83,6 +83,14 @@ public class UIController {
         root = new BorderPane();
         editorTabPane = new TabPane();
         fileExplorer = new TreeView<>();
+        fileExplorer.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2) {
+                TreeItem<File> item = fileExplorer.getSelectionModel().getSelectedItem();
+                if (item != null && item.getValue().isFile()) {
+                    fileManager.openFile(item.getValue());
+                }
+            }
+        });
         statusBar = new Label("Ready"); // Initialized status bar
 
         // StackPane for editor and popups
